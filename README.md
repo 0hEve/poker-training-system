@@ -27,11 +27,17 @@ handles blinds, turn order, min-raises, side pots, showdown and chip counts.
 
 ## Bots and the simulator
 
+- **Play against bots.** The welcome screen (and *Bots → New game against bots*) seats you against
+  one or more bots heads-up, 3-handed or 6-max and deals straight away. Your result shows in the top
+  bar; busted bots rebuy automatically and you get a *Rebuy* button.
 - **Bots at the table.** In the *Bots* tab, set any player to a bot. Bots act on their own turn at
   *Slow / Normal / Fast / Instant* speed, can auto-deal hands, and can be paused (e.g. to undo).
-- **Arena tab.** Two bots play each other headlessly (default 3v3 at 6-max, 50,000 duplicate decks)
-  across Web Workers, and the arena reports bb/100 with a 95% confidence interval, VPIP/PFR and
-  µs per decision.
+- **Simulator screen** (*📊 Simulator* in the top bar). Pick two bots, a format (3v3, 3v3 blocks,
+  heads-up, 2v2, 1v5), a number of decks, duplicate on/off, workers and an optional seed. Matches run
+  headlessly across Web Workers with a live estimate, then a results dashboard shows the winner and
+  95% range, decisions per second against the 10,000/s requirement, the winnings curve (showdown vs
+  non-showdown), how the estimate converged, profit by position, action mix by street and a
+  side-by-side stats table. The last 12 runs are kept, and each report links to *Play vs …* that bot.
 - **CLI.** `npm run sim -- --a tag --b station` runs the same match from the terminal on every core.
   Use `--hands`, `--seats a,b,c`, `--workers 1` (one continuous session, so bots can adapt across the
   whole match), `--bench <bot>` and `--list`.

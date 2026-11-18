@@ -1,6 +1,9 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('node:path');
 
+// Smoke tests can point the app at a throwaway profile so they never touch the user's saved table.
+if (process.env.ELECTRON_USER_DATA) app.setPath('userData', process.env.ELECTRON_USER_DATA);
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,

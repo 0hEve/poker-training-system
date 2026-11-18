@@ -72,11 +72,22 @@ export function useBots(game: GameState, view: ViewState, run: (cmd: Command) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
 
-  // Auto-deal the next hand.
+  // Auto-deal the next hand. Busted bots rebuy so a game against them keeps going;
+  // when a human is seated, leave time to read the result first.
   useEffect(() => {
     if (!view.autoDeal || view.botsPaused || handInProgress(game)) return;
-    if (game.players.filter((p) => !p.sittingOut && p.stack > 0).length < 2) return;
-    const t = setTimeout(() => run({ type: 'startHand' }), Math.max(150, view.botDelayMs * 3));
+    const busted = game.players.find((p) => p.bot && !p.sittingOut && p.stack === 0);
+    if (busted) {
+      run({ type: 'adjustStack', id: busted.id, delta: game.settings.startingStack });
+      return;
+    }
+    const active = game.players.filter((p) => !p.sittingOut && p.stack > 0);
+    if (active.length < 2) return;
+    const humanSeated = game.players.some((p) => !p.bot && !p.sittingOut);
+    const humanBusted = game.players.some((p) => !p.bot && !p.sittingOut && p.stack === 0);
+    if (humanBusted) return; // wait for the rebuy
+    const delay = humanSeated && game.hand ? Math.max(2500, view.botDelayMs * 3) : Math.max(150, view.botDelayMs * 3);
+    const t = setTimeout(() => run({ type: 'startHand' }), delay);
     return () => clearTimeout(t);
   }, [game, view.autoDeal, view.botsPaused, view.botDelayMs, run]);
 }

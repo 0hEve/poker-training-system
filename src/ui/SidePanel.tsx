@@ -1,9 +1,9 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { handInProgress, MAX_PLAYERS, type Command, type GameState, type Settings } from '../engine/game';
 import { formatChips } from '../engine/chips';
-import type { AppAction, ViewState } from '../store';
+import type { AppAction, PlaySeat, ViewState } from '../store';
 import { allBots } from '../bots/registry';
-import { Arena } from './Arena';
+import { PlayVsBots } from './PlayVsBots';
 
 interface Props {
   game: GameState;
@@ -12,20 +12,24 @@ interface Props {
   dispatch: (a: AppAction) => void;
 }
 
-export const SidePanel = memo(function SidePanel({ game, view, run, dispatch }: Props) {
-  const [tab, setTab] = useState<'players' | 'bots' | 'arena' | 'settings' | 'log'>('players');
+export const SidePanel = memo(function SidePanel({ game, view, run, dispatch, onStartPlay }: Props & { onStartPlay: (seats: PlaySeat[]) => void }) {
+  const hasBots = game.players.some((p) => p.bot);
+  const [tab, setTab] = useState<'players' | 'bots' | 'settings' | 'log'>(hasBots ? 'bots' : 'players');
+  // Jump to the bot controls when a game against bots starts.
+  useEffect(() => {
+    if (hasBots) setTab('bots');
+  }, [hasBots]);
   return (
     <aside className="side-panel sketch-panel">
       <nav className="tabs">
-        {(['players', 'bots', 'arena', 'settings', 'log'] as const).map((t) => (
+        {(['players', 'bots', 'settings', 'log'] as const).map((t) => (
           <button key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
         ))}
       </nav>
       {tab === 'players' && <Players game={game} view={view} run={run} dispatch={dispatch} />}
-      {tab === 'bots' && <Bots game={game} view={view} run={run} dispatch={dispatch} />}
-      {tab === 'arena' && <Arena />}
+      {tab === 'bots' && <Bots game={game} view={view} run={run} dispatch={dispatch} onStartPlay={onStartPlay} />}
       {tab === 'settings' && <SettingsForm game={game} view={view} run={run} dispatch={dispatch} />}
       {tab === 'log' && <Log lines={game.log} />}
     </aside>
@@ -118,10 +122,16 @@ const SPEEDS = [
 ];
 
 /** Assign bots to seats and control how fast they play at the live table. */
-function Bots({ game, view, run, dispatch }: Props) {
+function Bots({ game, view, run, dispatch, onStartPlay }: Props & { onStartPlay: (seats: PlaySeat[]) => void }) {
   const setView = (patch: Partial<ViewState>) => dispatch({ kind: 'view', patch });
+  const [newGame, setNewGame] = useState(!game.players.some((p) => p.bot));
   return (
     <div className="bots">
+      <details className="quick-play" open={newGame} onToggle={(e) => setNewGame((e.target as HTMLDetailsElement).open)}>
+        <summary>New game against bots</summary>
+        <PlayVsBots onStart={onStartPlay} compact />
+      </details>
+      <h4 className="panel-h">Who plays each seat</h4>
       <p className="hint">Hand any seat to a bot. Bots act on their own turn; their cards stay hidden unless you pick that seat.</p>
       <ul>
         {game.players.map((p) => (

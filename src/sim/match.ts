@@ -32,7 +32,12 @@ export interface MatchConfig {
   stack?: number;
   /** Also play a mirror table with the two bots' seats swapped (2 distinct bots only). */
   duplicate?: boolean;
+  /** Record a winnings-curve point every this many decks (default: about 400 points per run). */
+  curveEvery?: number;
 }
+
+/** Action kinds counted per street in `BotTotals.acts` (index = street * 5 + kind). */
+export const ACT_KINDS = ['fold', 'check', 'call', 'bet', 'raise'] as const;
 
 export interface BotTotals {
   id: string;
@@ -52,6 +57,25 @@ export interface BotTotals {
   showdowns: number;
   /** Showdowns with a positive result. */
   showdownWins: number;
+  /** Net chips won in hands that went to showdown with this bot in (the rest is won without showdown). */
+  sdNet: number;
+  /** Seat-hands where the bot saw the flop. */
+  sawFlop: number;
+  /** Net chips and seat-hands per position, indexed from the button (0 = button, 1 = small blind, ...). */
+  posNet: number[];
+  posHands: number[];
+  /** Action counts, index street * 5 + ACT_KINDS index. */
+  acts: number[];
+}
+
+/** Cumulative result of the first bot (`deck.id`) over the decks of a run, in deck order. */
+export interface Curve {
+  /** Absolute deck index after which the point was taken (exclusive end). */
+  x: number[];
+  /** Cumulative net chips (all of the bot's seats, all tables) since the first deck of the run. */
+  net: number[];
+  /** The part of `net` won in hands that reached showdown. */
+  sd: number[];
 }
 
 export interface MatchResult {
@@ -63,8 +87,18 @@ export interface MatchResult {
   tables: number;
   totals: Record<string, BotTotals>;
   /** Per-deck net of `ids[0]` summed over tables, for confidence intervals. */
-  deck: { id: string; n: number; sum: number; sumSq: number };
+  deck: DeckStat;
+  /** First deck index of this (possibly partial) result. */
+  firstHand: number;
+  curve: Curve;
   elapsedMs: number;
+}
+
+export interface DeckStat {
+  id: string;
+  n: number;
+  sum: number;
+  sumSq: number;
 }
 
 export type BotResolver = (id: string) => BotSpec;
@@ -77,11 +111,30 @@ export function mirrorSeats(seats: string[]): string[] | null {
   return seats.map((s) => (s === ids[0] ? ids[1] : ids[0]));
 }
 
-function emptyTotals(id: string): BotTotals {
-  return { id, seatHands: 0, net: 0, decisions: 0, thinkMs: 0, invalid: 0, errors: 0, vpip: 0, pfr: 0, showdowns: 0, showdownWins: 0 };
+function emptyTotals(id: string, n: number): BotTotals {
+  return {
+    id,
+    seatHands: 0,
+    net: 0,
+    decisions: 0,
+    thinkMs: 0,
+    invalid: 0,
+    errors: 0,
+    vpip: 0,
+    pfr: 0,
+    showdowns: 0,
+    showdownWins: 0,
+    sdNet: 0,
+    sawFlop: 0,
+    posNet: new Array(n).fill(0),
+    posHands: new Array(n).fill(0),
+    acts: new Array(4 * ACT_KINDS.length).fill(0),
+  };
 }
 
-export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (handsDone: number) => void): MatchResult {
+const ACT_INDEX: Record<string, number> = { fold: 0, check: 1, call: 2, bet: 3, raise: 4 };
+
+export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (handsDone: number, deck: DeckStat) => void): MatchResult {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const N = cfg.seats.length;
   if (N < 2 || N > 10) throw new Error('A table needs 2..10 seats');
@@ -99,7 +152,11 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
     layout.map((id, phys) => resolve(id).create({ seed: hash32(cfg.seed * 31 + t * 1009 + phys * 7919 + 1), playerId: playerIds[phys] })),
   );
   const totals: Record<string, BotTotals> = {};
-  for (const id of ids) totals[id] = emptyTotals(id);
+  for (const id of ids) totals[id] = emptyTotals(id, N);
+  const curveEvery = Math.max(1, Math.floor(cfg.curveEvery ?? Math.ceil(cfg.hands / 400)));
+  const curve: Curve = { x: [], net: [], sd: [] };
+  let curveNet = 0;
+  let curveSd = 0;
 
   const table = new FastTable({ smallBlind: sb, bigBlind: bb, ante });
   const deck = new Int8Array(52);
@@ -124,11 +181,23 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
       const net = table.playHand(bots, seatIds, stacks, deck, h);
       const actions = table.handActions;
       const reachedShowdown = table.wentToShowdown;
+      let foldedPre = 0;
+      let flop = reachedShowdown;
+      for (const a of actions) {
+        if (a.kind === 'post') continue;
+        const ai = ACT_INDEX[a.kind];
+        seatTotals[a.seat].acts[a.street * 5 + ai]++;
+        if (a.street === 0 && a.kind === 'fold') foldedPre |= 1 << a.seat;
+        if (a.street > 0) flop = true;
+      }
       for (let k = 0; k < N; k++) {
         const tot = seatTotals[k];
         const st = table.stats[k];
         tot.seatHands++;
         tot.net += net[k];
+        tot.posNet[k] += net[k];
+        tot.posHands[k]++;
+        if (flop && !(foldedPre & (1 << k))) tot.sawFlop++;
         tot.decisions += st.decisions;
         tot.thinkMs += st.thinkMs;
         tot.invalid += st.invalid;
@@ -136,6 +205,8 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
         if (reachedShowdown && !table.hasFolded(k)) {
           tot.showdowns++;
           if (net[k] > 0) tot.showdownWins++;
+          tot.sdNet += net[k];
+          if (tot.id === ids[0]) curveSd += net[k];
         }
         if (tot.id === ids[0]) deckNet += net[k];
       }
@@ -157,26 +228,47 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
     deckStat.n++;
     deckStat.sum += deckNet;
     deckStat.sumSq += deckNet * deckNet;
-    if (onProgress && (h - first + 1) % 500 === 0) onProgress(h - first + 1);
+    curveNet += deckNet;
+    const doneHere = h - first + 1;
+    if (doneHere % curveEvery === 0 || doneHere === cfg.hands) {
+      curve.x.push(h + 1);
+      curve.net.push(curveNet);
+      curve.sd.push(curveSd);
+    }
+    if (onProgress && doneHere % 250 === 0) onProgress(doneHere, deckStat);
   }
-  onProgress?.(cfg.hands);
+  onProgress?.(cfg.hands, deckStat);
   const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  return { seats: cfg.seats, bigBlind: bb, hands: cfg.hands, tables: layouts.length, totals, deck: deckStat, elapsedMs: t1 - t0 };
+  return { seats: cfg.seats, bigBlind: bb, hands: cfg.hands, tables: layouts.length, totals, deck: deckStat, firstHand: first, curve, elapsedMs: t1 - t0 };
 }
 
 /** Merge results of the same match run in pieces (e.g. one per worker). */
 export function mergeResults(parts: MatchResult[]): MatchResult {
   if (!parts.length) throw new Error('nothing to merge');
-  const out: MatchResult = structuredClone(parts[0]);
-  for (const p of parts.slice(1)) {
+  const sorted = [...parts].sort((a, b) => a.firstHand - b.firstHand);
+  const out: MatchResult = structuredClone(sorted[0]);
+  for (const p of sorted.slice(1)) {
     out.hands += p.hands;
     out.elapsedMs = Math.max(out.elapsedMs, p.elapsedMs);
     out.deck.n += p.deck.n;
     out.deck.sum += p.deck.sum;
     out.deck.sumSq += p.deck.sumSq;
+    // Curves continue from where the previous range ended.
+    const baseNet = out.curve.net.length ? out.curve.net[out.curve.net.length - 1] : 0;
+    const baseSd = out.curve.sd.length ? out.curve.sd[out.curve.sd.length - 1] : 0;
+    for (let i = 0; i < p.curve.x.length; i++) {
+      out.curve.x.push(p.curve.x[i]);
+      out.curve.net.push(baseNet + p.curve.net[i]);
+      out.curve.sd.push(baseSd + p.curve.sd[i]);
+    }
     for (const [id, t] of Object.entries(p.totals)) {
-      const o = (out.totals[id] ??= emptyTotals(id));
-      for (const k of Object.keys(t) as (keyof BotTotals)[]) if (k !== 'id') (o[k] as number) += t[k] as number;
+      const o = (out.totals[id] ??= emptyTotals(id, t.posNet.length));
+      for (const k of Object.keys(t) as (keyof BotTotals)[]) {
+        const v = t[k];
+        if (k === 'id') continue;
+        if (Array.isArray(v)) (o[k] as number[]).forEach((_, i, arr) => (arr[i] += v[i]));
+        else (o[k] as number) += v as number;
+      }
     }
   }
   return out;
@@ -196,6 +288,15 @@ export interface BotReport {
   vpipPct: number;
   pfrPct: number;
   wsdPct: number;
+  /** Went to showdown, % of flops seen. */
+  wtsdPct: number;
+  /** bb/100 won at showdown and without showdown (they add up to bb100). */
+  sdBb100: number;
+  nonSdBb100: number;
+  /** Postflop aggression factor: (bets + raises) / calls. */
+  af: number;
+  /** bb/100 by position (index from the button). */
+  posBb100: number[];
   invalid: number;
   errors: number;
 }
@@ -223,10 +324,34 @@ export function summarize(r: MatchResult): BotReport[] {
       vpipPct: (100 * t.vpip) / t.seatHands,
       pfrPct: (100 * t.pfr) / t.seatHands,
       wsdPct: t.showdowns ? (100 * t.showdownWins) / t.showdowns : 0,
+      wtsdPct: t.sawFlop ? (100 * t.showdowns) / t.sawFlop : 0,
+      sdBb100: (t.sdNet / r.bigBlind / t.seatHands) * 100,
+      nonSdBb100: ((t.net - t.sdNet) / r.bigBlind / t.seatHands) * 100,
+      af: afOf(t.acts),
+      posBb100: t.posNet.map((x, i) => (t.posHands[i] ? (x / r.bigBlind / t.posHands[i]) * 100 : 0)),
       invalid: t.invalid,
       errors: t.errors,
     };
   });
+}
+
+function afOf(acts: number[]): number {
+  let aggressive = 0;
+  let calls = 0;
+  for (let st = 1; st < 4; st++) {
+    aggressive += acts[st * 5 + 3] + acts[st * 5 + 4];
+    calls += acts[st * 5 + 2];
+  }
+  return calls ? aggressive / calls : aggressive ? Infinity : 0;
+}
+
+/** Position names by index from the button for an `n`-handed table. */
+export function positionNames(n: number): string[] {
+  if (n === 2) return ['BTN/SB', 'BB'];
+  const lateCount = Math.min(2, Math.max(0, n - 3));
+  const late = ['HJ', 'CO'].slice(2 - lateCount);
+  const middle = ['UTG', 'UTG+1', 'UTG+2', 'MP', 'LJ'].slice(0, Math.max(0, n - 3 - lateCount));
+  return ['BTN', 'SB', 'BB', ...middle, ...late];
 }
 
 /** Split `hands` into `parts` contiguous ranges. */
