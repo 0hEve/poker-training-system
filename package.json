@@ -12,7 +12,8 @@
     "test": "vitest run",
     "electron": "npm run build && node scripts/electron.mjs --prod",
     "electron:dev": "node scripts/electron.mjs",
-    "dist:mac": "npm run build && npx --yes electron-builder@26 --mac"
+    "dist:mac": "npm run build && npx --yes electron-builder@26 --mac",
+    "sim": "node scripts/sim.mjs"
   },
   "build": {
     "appId": "local.pokertable.app",
