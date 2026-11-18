@@ -148,6 +148,14 @@ describe('game flow', () => {
     expect(totalChips(g)).toBe(1003);
   });
 
+  it('blinds cannot change mid-hand but starting stack can', () => {
+    let g = createGame(['A', 'B']);
+    g = reduce(g, { type: 'startHand' });
+    expect(() => reduce(g, { type: 'updateSettings', settings: { bigBlind: 50 } })).toThrow();
+    g = reduce(g, { type: 'updateSettings', settings: { startingStack: 2000 } });
+    expect(g.settings.startingStack).toBe(2000);
+  });
+
   it('reset chips restores starting stacks and cancels the hand', () => {
     let g = createGame(['A', 'B']);
     g = reduce(g, { type: 'startHand' });

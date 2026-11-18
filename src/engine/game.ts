@@ -243,6 +243,8 @@ export function reduce(state: GameState, cmd: Command): GameState {
       break;
     }
     case 'updateSettings': {
+      const locksBlinds = (['smallBlind', 'bigBlind', 'ante'] as const).some((k) => k in cmd.settings && cmd.settings[k] !== g.settings[k]);
+      if (locksBlinds && handInProgress(g)) throw new Error('Change blinds between hands');
       const s = { ...g.settings, ...cmd.settings };
       for (const k of ['smallBlind', 'bigBlind', 'ante', 'startingStack'] as const) s[k] = Math.max(0, Math.floor(Number(s[k]) || 0));
       if (s.bigBlind < 1) s.bigBlind = 1;
