@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { allBots, findBot } from '../../bots/registry';
 import { ACT_KINDS, positionNames, summarize, type BotReport } from '../../sim/match';
 import { ACTION_COLORS, ACTION_LABELS, GroupedBars, Legend, LineChart, SERIES, StackedRows, compact, signed } from './charts';
+import { Bankroll } from './Bankroll';
+import type { Bankroll as BankrollHook } from './useBankroll';
 import { FORMATS, defaultWorkers, seatsFor, seatsPerDeck, type FormatId, type SimConfig, type SimRun, type Simulation } from './useSimulation';
 
 const botName = (id: string) => findBot(id)?.name ?? id;
@@ -19,7 +21,23 @@ function defaultPair(): [string, string] {
   return [a, b];
 }
 
-export function Simulator({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[]) => void }) {
+export function Simulator({
+  sim,
+  bank,
+  tab,
+  onPlay,
+}: {
+  sim: Simulation;
+  bank: BankrollHook;
+  tab: 'match' | 'bankroll';
+  onTab: (t: 'match' | 'bankroll') => void;
+  onPlay: (botIds: string[]) => void;
+}) {
+  if (tab === 'bankroll') return <Bankroll bank={bank} />;
+  return <HeadToHead sim={sim} onPlay={onPlay} />;
+}
+
+function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[]) => void }) {
   const { state } = sim;
   const running = state.status === 'running';
   const [initA, initB] = defaultPair();

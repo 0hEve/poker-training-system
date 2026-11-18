@@ -1888,3 +1888,264 @@ input[type='range'] {
 .stats-table {
   max-width: 980px;
 }
+
+/* ------------------------------------------------------------ action so far */
+.street-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.35rem;
+  align-items: center;
+  font-size: 0.76rem;
+  margin: 0.15rem 0 0.45rem;
+  max-width: 560px;
+}
+
+.street-label {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.68rem;
+  opacity: 0.6;
+  margin-right: 0.15rem;
+}
+
+.street-act {
+  border: 1px solid rgba(35, 26, 19, 0.35);
+  border-radius: 8px;
+  padding: 0 0.4rem;
+  background: #fffaf0;
+  white-space: nowrap;
+}
+
+.street-act.bet,
+.street-act.raise {
+  background: #f6dfa0;
+  border-color: var(--ink);
+}
+
+.street-act.fold {
+  opacity: 0.55;
+}
+
+/* ------------------------------------------------------------ bankroll */
+.sim-tabs {
+  display: flex;
+  gap: 0.35rem;
+  -webkit-app-region: no-drag;
+}
+
+.sim-tabs button {
+  cursor: pointer;
+  font-family: var(--hand);
+  font-size: 0.92rem;
+  border: 1.5px solid rgba(246, 237, 217, 0.6);
+  background: transparent;
+  color: var(--paper);
+  border-radius: var(--wobbly-sm);
+  padding: 0.2rem 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sim-tabs button.on {
+  background: rgba(246, 237, 217, 0.18);
+  border-color: var(--paper);
+}
+
+.seat-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.seat-list li {
+  display: grid;
+  grid-template-columns: 16px 1fr 128px;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.seat-list select {
+  font-size: 0.8rem;
+  min-width: 0;
+}
+
+.seat-name {
+  font-size: 0.84rem;
+  min-width: 0;
+}
+
+.viz-swatch.ring {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--ink);
+}
+
+.sim-three {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.sim-three label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sim-three .sim-num {
+  max-width: none;
+}
+
+.bank-actions {
+  display: flex;
+  gap: 0.5rem;
+  position: sticky;
+  bottom: 0;
+}
+
+.bank-actions .sim-run {
+  flex: 1;
+  position: static;
+}
+
+.bank-head {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  justify-content: space-between;
+}
+
+.bank-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+}
+
+.bank-progress {
+  max-width: 320px;
+}
+
+.bank-piles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.pile-card {
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.2rem;
+}
+
+.pile-card.out {
+  opacity: 0.55;
+}
+
+.pile-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  min-width: 0;
+}
+
+.pile-name {
+  font-family: var(--hand);
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.pile-dealer {
+  display: inline-flex;
+}
+
+.pile-chips {
+  height: 92px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pile-chips .chip-pile {
+  position: static;
+  transform: none;
+}
+
+.pile-empty {
+  font-size: 0.78rem;
+  opacity: 0.6;
+  align-self: center;
+}
+
+.pile-stack {
+  font-family: var(--hand);
+  font-size: 1.5rem;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.pile-delta {
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.pile-share {
+  height: 6px;
+  background: var(--paper-2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.2rem;
+}
+
+.pile-share > div {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.25s ease;
+}
+
+.pile-foot {
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.bank-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.bank-chip-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.grow-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.grow-cols {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1px;
+  flex-wrap: wrap-reverse;
+  max-width: 140px;
+}
+
+.grow-scale {
+  font-size: 0.62rem;
+  opacity: 0.6;
+}

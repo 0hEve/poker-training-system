@@ -91,8 +91,11 @@ export function LineChart({
   formatY = compact,
   xTitle,
   tooltipTitle,
+  sortTooltip = false,
 }: {
   series: LineSeries[];
+  /** List tooltip rows from highest to lowest value. */
+  sortTooltip?: boolean;
   /** Shaded range, [x, lo, hi]. */
   band?: { label: string; color: string; points: [number, number, number][] };
   height?: number;
@@ -186,7 +189,7 @@ export function LineChart({
       {hx !== null && hx !== undefined && (
         <Tooltip x={sx(hx)} y={m.t + ih / 2} width={width}>
           <div className="viz-tip-title">{tooltipTitle ? tooltipTitle(hx) : formatX(hx)}</div>
-          {series.map((s) => {
+          {(sortTooltip ? [...series].sort((a, b) => (b.points[hover!]?.[1] ?? 0) - (a.points[hover!]?.[1] ?? 0)) : series).map((s) => {
             const p = s.points[hover!];
             return p ? (
               <div key={s.label} className="viz-tip-row">

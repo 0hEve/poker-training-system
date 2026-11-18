@@ -12,6 +12,7 @@ import { useBots } from './useBots';
 import { PlayVsBots, playSeats } from './PlayVsBots';
 import { Simulator } from './sim/Simulator';
 import { useSimulation } from './sim/useSimulation';
+import { useBankroll } from './sim/useBankroll';
 import type { PlaySeat } from '../store';
 
 export function App() {
@@ -21,6 +22,8 @@ export function App() {
   const busy = handInProgress(game);
   useBots(game, view, run);
   const sim = useSimulation();
+  const bank = useBankroll();
+  const simTab = view.simTab ?? 'match';
   const mode = view.mode ?? 'table';
   const setMode = (m: 'table' | 'sim') => dispatch({ kind: 'view', patch: { mode: m } });
   const startPlay = useCallback((seats: PlaySeat[]) => dispatch({ kind: 'setupPlay', seats }), [dispatch]);
@@ -69,6 +72,7 @@ export function App() {
           <button className={mode === 'sim' ? 'on' : ''} onClick={() => setMode('sim')}>
             📊 Simulator
             {sim.state.status === 'running' && <span className="mode-badge">{Math.round(sim.state.progress * 100)}%</span>}
+            {bank.state.status === 'running' && sim.state.status !== 'running' && <span className="mode-badge">live</span>}
             {sim.state.status === 'done' && mode !== 'sim' && <span className="mode-badge done">new</span>}
           </button>
         </nav>
@@ -98,15 +102,21 @@ export function App() {
             </div>
           </>
         ) : (
-          <div className="top-info">
-            <span>Bot vs bot matches at full speed</span>
-          </div>
+          <nav className="sim-tabs" aria-label="Simulator mode">
+            <button className={simTab === 'match' ? 'on' : ''} onClick={() => dispatch({ kind: 'view', patch: { simTab: 'match' } })}>
+              Head-to-head (bb/100)
+            </button>
+            <button className={simTab === 'bankroll' ? 'on' : ''} onClick={() => dispatch({ kind: 'view', patch: { simTab: 'bankroll' } })}>
+              💰 Bankroll session
+              {bank.state.status === 'running' && <span className="mode-badge">live</span>}
+            </button>
+          </nav>
         )}
       </header>
 
       {mode === 'sim' ? (
         <main className="main main-sim">
-          <Simulator sim={sim} onPlay={playAgainst} />
+          <Simulator sim={sim} bank={bank} tab={simTab} onTab={(t) => dispatch({ kind: 'view', patch: { simTab: t } })} onPlay={playAgainst} />
         </main>
       ) : (
       <main className="main">
