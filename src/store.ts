@@ -24,6 +24,8 @@ export interface ViewState {
   botsPaused: boolean;
   /** Which screen is shown: the live table or the bot-vs-bot simulator. */
   mode: 'table' | 'sim';
+  /** Simulator tab: head-to-head match or bankroll session. */
+  simTab?: 'match' | 'bankroll';
 }
 
 /** One seat of a quick "play against bots" table. */

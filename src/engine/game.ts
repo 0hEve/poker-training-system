@@ -117,6 +117,14 @@ export type Command =
 export const MAX_PLAYERS = 10;
 export const PLAYER_COLORS = ['#c0392b', '#2471a3', '#d68910', '#7d3c98', '#17a589', '#cb4335', '#2e4053', '#b9770e', '#1e8449', '#a93226'];
 
+/** Log wording that reads right for a player named "You" ("You call 20", not "You calls 20"). */
+const isYou = (name: string) => /^you$/i.test(name.trim());
+const SECOND_PERSON: Record<string, string> = { 'raises to': 'raise to' };
+function says(name: string, verb: string): string {
+  if (!isYou(name)) return `${name} ${verb}`;
+  return `${name} ${SECOND_PERSON[verb] ?? verb.replace(/s$/, '')}`;
+}
+
 /* --------------------------------------------------------------- creation */
 
 let idCounter = 0;
@@ -360,15 +368,15 @@ function startHand(g: GameState, deck?: Card[]) {
     for (const s of seats) {
       const amt = commit(g, s, g.settings.ante, false);
       record(h, seats.indexOf(s), 'post', amt);
-      if (amt) log(g, `${nameOf(g, s)} antes ${amt}.`);
+      if (amt) log(g, `${says(nameOf(g, s), 'antes')} ${amt}.`);
     }
   }
   const sbAmt = commit(g, seats[sbSeat], g.settings.smallBlind, true);
   record(h, sbSeat, 'post', sbAmt);
-  log(g, `${nameOf(g, seats[sbSeat])} posts small blind ${sbAmt}.`);
+  log(g, `${says(nameOf(g, seats[sbSeat]), 'posts')} small blind ${sbAmt}.`);
   const bbAmt = commit(g, seats[bbSeat], g.settings.bigBlind, true);
   record(h, bbSeat, 'post', bbAmt);
-  log(g, `${nameOf(g, seats[bbSeat])} posts big blind ${bbAmt}.`);
+  log(g, `${says(nameOf(g, seats[bbSeat]), 'posts')} big blind ${bbAmt}.`);
   seats[sbSeat].lastAction = `SB ${sbAmt}`;
   seats[bbSeat].lastAction = `BB ${bbAmt}`;
   // Players must call the full big blind even if the BB is short.
@@ -466,20 +474,20 @@ function act(g: GameState, action: Action) {
       s.folded = true;
       record(h, i, 'fold', 0);
       s.lastAction = 'Fold';
-      log(g, `${p.name} folds.`);
+      log(g, `${says(p.name, 'folds')}.`);
       break;
     case 'check':
       if (!legal.check) throw new Error('Cannot check facing a bet');
       record(h, i, 'check', 0);
       s.lastAction = 'Check';
-      log(g, `${p.name} checks.`);
+      log(g, `${says(p.name, 'checks')}.`);
       break;
     case 'call': {
       if (!legal.call) throw new Error('Nothing to call');
       const amt = commit(g, s, legal.call, true);
       record(h, i, 'call', amt);
       s.lastAction = s.allIn ? `Call ${amt} (all-in)` : `Call ${amt}`;
-      log(g, `${p.name} calls ${amt}${s.allIn ? ' and is all-in' : ''}.`);
+      log(g, `${says(p.name, 'calls')} ${amt}${s.allIn ? (isYou(p.name) ? ' and are all-in' : ' and is all-in') : ''}.`);
       break;
     }
     case 'raise':
@@ -493,7 +501,7 @@ function act(g: GameState, action: Action) {
           const amt = commit(g, s, Math.min(p.stack, h.currentBet - s.bet), true);
           record(h, i, 'call', amt);
           s.lastAction = s.allIn ? `Call ${amt} (all-in)` : `Call ${amt}`;
-          log(g, `${p.name} calls ${amt}${s.allIn ? ' and is all-in' : ''}.`);
+          log(g, `${says(p.name, 'calls')} ${amt}${s.allIn ? (isYou(p.name) ? ' and are all-in' : ' and is all-in') : ''}.`);
           break;
         }
       } else {
@@ -510,7 +518,7 @@ function act(g: GameState, action: Action) {
       h.currentBet = to;
       record(h, i, prevBet === 0 ? 'bet' : 'raise', to);
       s.lastAction = `${prevBet === 0 ? 'Bet' : 'Raise to'} ${to}${s.allIn ? ' (all-in)' : ''}`;
-      log(g, `${p.name} ${word} ${to}${s.allIn ? ' and is all-in' : ''}.`);
+      log(g, `${says(p.name, word)} ${to}${s.allIn ? (isYou(p.name) ? ' and are all-in' : ' and is all-in') : ''}.`);
       break;
     }
   }
@@ -597,7 +605,7 @@ function finishUncontested(g: GameState, winner: SeatState) {
     payouts: { [winner.playerId]: total },
     uncontested: true,
   };
-  log(g, `${p.name} wins ${total} uncontested.`);
+  log(g, `${says(p.name, 'wins')} ${total} uncontested.`);
 }
 
 function showdown(g: GameState) {
@@ -633,12 +641,12 @@ function showdown(g: GameState) {
   h.result = { pots: potResults, hands, payouts, uncontested: false };
   for (const s of h.seats) {
     if (s.folded) continue;
-    log(g, `${nameOf(g, s)} shows ${s.hole.map(cardLabel).join(' ')} — ${hands[s.playerId].description}.`);
+    log(g, `${says(nameOf(g, s), 'shows')} ${s.hole.map(cardLabel).join(' ')} — ${hands[s.playerId].description}.`);
   }
   potResults.forEach((pr, idx) => {
     const names = pr.winners.map((id) => playerById(g, id)!.name).join(' & ');
     if (pr.returned) log(g, `Uncalled ${pr.amount} returned to ${names}.`);
-    else log(g, `${names} ${pr.winners.length > 1 ? 'split' : 'wins'} ${idx === 0 ? 'the main pot' : `side pot ${idx}`} (${pr.amount}).`);
+    else log(g, `${pr.winners.length > 1 ? `${names} split` : says(names, 'wins')} ${idx === 0 ? 'the main pot' : `side pot ${idx}`} (${pr.amount}).`);
   });
 }
 

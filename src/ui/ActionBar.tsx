@@ -47,6 +47,7 @@ export const ActionBar = memo(function ActionBar({ game, run }: Props) {
         <b>{player.name}</b> to act
         <span className="muted"> · stack {formatChips(player.stack)}</span>
       </div>
+      <StreetActions game={game} />
       <div className="action-buttons">
         <button className="btn btn-fold" onClick={() => run({ type: 'act', action: { type: 'fold' } })}>
           Fold
@@ -105,3 +106,29 @@ export const ActionBar = memo(function ActionBar({ game, run }: Props) {
     </div>
   );
 });
+
+const STREET_NO: Record<string, number> = { preflop: 0, flop: 1, turn: 2, river: 3, showdown: 3 };
+const KIND_WORD: Record<string, string> = { fold: 'folds', check: 'checks', call: 'calls', bet: 'bets', raise: 'raises to' };
+
+/** What everyone has done so far on this street, in order, so it's clear who acted before you. */
+function StreetActions({ game }: { game: GameState }) {
+  const h = game.hand!;
+  const street = STREET_NO[h.street];
+  const acts = (h.actions ?? []).filter((a) => a.street === street && a.kind !== 'post');
+  const name = (seat: number) => playerById(game, h.seats[seat].playerId)?.name ?? '?';
+  return (
+    <div className="street-actions" aria-label="Action on this street">
+      <span className="street-label">{h.street}</span>
+      {acts.length === 0 ? (
+        <span className="muted">{street === 0 ? 'blinds posted, nobody has acted yet' : 'first to act on this street'}</span>
+      ) : (
+        acts.map((a, i) => (
+          <span key={i} className={`street-act ${a.kind}`}>
+            {name(a.seat)} {KIND_WORD[a.kind]}
+            {a.kind === 'call' || a.kind === 'bet' || a.kind === 'raise' ? ` ${formatChips(a.amount)}` : ''}
+          </span>
+        ))
+      )}
+    </div>
+  );
+}
