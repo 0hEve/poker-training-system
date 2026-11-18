@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poker table samples</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --gold: #d5b989;
+    --cream: #f8e9c9;
+    --rule: #b49a64;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #182522; color: var(--cream); }
+  .table {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    min-height: 100vh;
+    padding: 69px clamp(32px, 7.8vw, 110px) 150px;
+    background: radial-gradient(ellipse at 43% 22%, #285748 1%, #224b40 43%, #14332f 100%);
+  }
+  .table::before, .rail::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background-image: var(--grain);
+    pointer-events: none;
+  }
+  .table::before { opacity: .29; }
+  .rail {
+    position: absolute;
+    z-index: -1;
+    top: calc(100% - 118px);
+    left: -9%;
+    width: 118%;
+    height: 315px;
+    transform: rotate(-2.8deg);
+    border-radius: 50% 57% 0 0 / 16% 20% 0 0;
+    border-top: 3px solid #312119;
+    outline: 1px solid #cba16d;
+    background: linear-gradient(172deg, #73513b, #8a6045 12%, #553329 34%, #492a22 56%);
+    box-shadow: 0 -4px 0 #122520, 0 -11px 0 -5px #132622, inset 0 7px 0 #b5875b,
+      inset 0 11px 0 #55382b, inset 0 16px 0 #71513c;
+  }
+  .rail::before { opacity: .52; border-radius: inherit; }
+  .rail::after {
+    content: "";
+    position: absolute;
+    inset: 26px 11px 0;
+    border: 2px dashed #d4a57777;
+    border-radius: inherit;
+  }
+  main { width: min(100%, 1180px); margin-inline: auto; }
+  header { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+  h1 {
+    margin: 0 0 5px -3px;
+    font: 400 clamp(58px, 6.5vw, 90px)/.98 Georgia, serif;
+    letter-spacing: -.061em;
+    word-spacing: .04em;
+    text-shadow: 1px 2px #142b25;
+  }
+  .deck {
+    color: #dcc9a2;
+    margin: 15px 0 0;
+    font: italic 21px/1.3 Georgia, serif;
+  }
+  .suits {
+    margin: 0 0 4px;
+    color: #dec197;
+    font: 23px/1 Georgia, serif;
+    letter-spacing: .42em;
+    white-space: nowrap;
+  }
+  section { margin-top: 44px; }
+  .section-line { display: flex; align-items: center; gap: 16px; }
+  .section-line::after { content: ""; height: 1px; background: var(--rule); opacity: .45; flex: 1; }
+  h2, figcaption {
+    margin: 0;
+    color: var(--gold);
+    font: 600 12px/1.3 system-ui, sans-serif;
+    letter-spacing: .20em;
+    text-transform: uppercase;
+  }
+  .chip-area, .card-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 198px;
+    gap: 30px;
+  }
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: center;
+    gap: 10px;
+    padding-block: 21px 7px;
+  }
+  .chip, .card, .stack { margin: 0; }
+  .chip svg, .card svg, .stack svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chip {
+    width: min(100%, 100px);
+    justify-self: center;
+    filter: drop-shadow(2px 6px 3px #10251fb5);
+    transform: rotate(var(--angle));
+    transition: transform .18s ease;
+  }
+  .chip:hover { transform: translateY(-5px) rotate(0deg); }
+  .stack {
+    position: relative;
+    display: grid;
+    grid-template-rows: 106px auto;
+    justify-items: center;
+    align-items: center;
+    margin-top: 17px;
+  }
+  .stack-art { position: relative; width: 146px; height: 107px; isolation: isolate; }
+  .stack-art::before {
+    content: "";
+    position: absolute;
+    inset: 28px 0 0;
+    border: 1px solid #cbb38974;
+    border-radius: 50%;
+    box-shadow: 0 0 0 5px #cbb38921;
+    transform: rotate(-5deg);
+  }
+  .stack-art::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 56px;
+    left: 24px;
+    width: 110px;
+    height: 40px;
+    background: radial-gradient(ellipse at center, #10251edb, transparent 72%);
+    transform: rotate(9deg);
+  }
+  .stack-piece { position: absolute; left: calc(30px + var(--drift)); top: calc(1px + var(--rise)); width: 86px; }
+  .stack-piece svg { transform: scaleY(.61) rotate(var(--spin)); }
+  .stack figcaption { font-size: 10px; margin-top: 9px; }
+  .cards-section { margin-top: 39px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    align-items: center;
+    gap: 14px;
+    padding-block: 29px 10px;
+  }
+  .card {
+    width: min(100%, 134px);
+    justify-self: center;
+    position: relative;
+    transform: perspective(680px) rotateX(8deg) rotateZ(var(--angle)) translateY(var(--shift));
+    filter: drop-shadow(3px 9px 4px #112822b8);
+    transition: transform .19s ease;
+  }
+  .card:hover { transform: perspective(680px) rotateX(0deg) translateY(-9px); z-index: 1; }
+  .back { margin: 0; display: grid; justify-items: center; align-content: start; gap: 16px; padding-top: 29px; }
+  .back figcaption { font-size: 10px; }
+  .back .card {
+    width: min(78%, 135px);
+  }
+  .back .card::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 4px 4px 0;
+    border: 1px solid #362c26;
+    border-radius: 9px;
+    background: #d3ba94;
+    box-shadow: 0 2px #8e765b, 0 4px #d3ba94, 0 6px #8e765b;
+    transform: translate(4px, 4px) rotate(-4deg);
+  }
+  .lower-line {
+    position: absolute;
+    z-index: -1;
+    top: calc(100% - 214px);
+    left: -16px;
+    width: 81%;
+    height: 155px;
+    border: 1px solid #ba9c6645;
+    border-width: 0 0 1px;
+    border-radius: 0 0 45% 47%;
+    transform: rotate(-2deg);
+    pointer-events: none;
+  }
+  @media (max-width: 950px) {
+    .chip-area, .card-area { grid-template-columns: minmax(0, 1fr) 126px; gap: 20px; }
+    .table { padding-inline: 28px; }
+    .stack { scale: .87; }
+  }
+  @media (max-width: 620px) {
+    .table { padding: 42px 22px 133px; }
+    header { display: block; }
+    .suits { display: none; }
+    .chip-area, .card-area { grid-template-columns: minmax(0, 1fr) 100px; gap: 12px; }
+    .chips, .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px 8px; }
+    .stack { scale: .70; }
+    .back { padding-top: 34px; text-align: center; }
+    .back .card { width: 76%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .card, .chip { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="table">
+  <div class="lower-line" aria-hidden="true"></div>
+  <div class="rail" aria-hidden="true"></div>
+  <main>
+    <header>
+      <div>
+        <h1>Poker table</h1>
+        <p class="deck">An illustrated set of chips and playing cards</p>
+      </div>
+      <p class="suits" aria-hidden="true">♠ ♦ ♣ ♥</p>
+    </header>
+    <section aria-labelledby="chip-label">
+      <div class="section-line"><h2 id="chip-label">Casino chips</h2></div>
+      <div class="chip-area">
+        <div id="chips" class="chips"></div>
+        <figure class="stack">
+          <div id="stack" class="stack-art" role="img" aria-label="Stack of green and red chips viewed at an angle"></div>
+          <figcaption>Stacked chips</figcaption>
+        </figure>
+      </div>
+    </section>
+    <section class="cards-section" aria-labelledby="card-label">
+      <div class="section-line"><h2 id="card-label">Playing cards</h2></div>
+      <div class="card-area">
+        <div id="cards" class="cards"></div>
+        <figure class="back">
+          <div id="back" class="card" style="--angle: 7deg; --shift: 0px"></div>
+          <figcaption>Card back</figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+</div>
+<script type="module">
+  import { chipSVG, cardSVG, cardBackSVG } from './elements.js';
+
+  const chipValues = [1, 5, 25, 100, 500, 1000];
+  const chipAngles = [-9, 7, -7, 5, -8, 9];
+  const cardFaces = [
+    ['A', 'spades', -8, 6],
+    ['7', 'hearts', -4, 0],
+    ['10', 'diamonds', 2, 4],
+    ['K', 'clubs', -2, 2],
+    ['Q', 'hearts', 3, 2],
+    ['J', 'spades', 7, 6],
+  ];
+  const chipArt = new Map(chipValues.map(value => [value, chipSVG({ value })]));
+  document.querySelector('#chips').innerHTML = chipValues.map((value, i) =>
+    `<figure class="chip" style="--angle: ${chipAngles[i]}deg">${chipArt.get(value)}</figure>`,
+  ).join('');
+  document.querySelector('#cards').innerHTML = cardFaces.map(([rank, suit, angle, shift]) =>
+    `<figure class="card" style="--angle: ${angle}deg; --shift: ${shift}px">${cardSVG({ rank, suit })}</figure>`,
+  ).join('');
+  document.querySelector('#back').innerHTML = cardBackSVG();
+
+  const stack = [[25, 0, -4], [25, -1, 3], [5, -2, -7], [25, -2, 8], [25, 1, -5], [5, 3, 9]];
+  document.querySelector('#stack').innerHTML = stack.map(([value, drift, spin], i) =>
+    `<div aria-hidden="true" class="stack-piece" style="--rise: ${(5 - i) * 7}px; --drift: ${drift}px; --spin: ${spin}deg">${chipArt.get(value)}</div>`,
+  ).join('');
+
+  // Rasterize one tile at startup and reuse it on both the felt and the rail.
+  const tile = document.createElement('canvas');
+  tile.width = tile.height = 160;
+  const context = tile.getContext('2d');
+  const texture = context.createImageData(160, 160);
+  let state = 1919;
+  for (let i = 0; i < texture.data.length; i += 4) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const light = state >>> 24;
+    const tone = light > 132 ? 235 : 15;
+    texture.data.set([tone, tone, tone, Math.floor(Math.abs(light - 132) * .73)], i);
+  }
+  context.putImageData(texture, 0, 0);
+  document.querySelector('.table').style.setProperty('--grain', `url("${tile.toDataURL()}")`);
+</script>
+</body>
+</html>
