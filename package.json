@@ -10,13 +10,16 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "electron": "npm run build && electron .",
-    "electron:dev": "node scripts/electron-dev.mjs",
+    "electron": "npm run build && node scripts/electron.mjs --prod",
+    "electron:dev": "node scripts/electron.mjs",
     "dist:mac": "npm run build && npx --yes electron-builder@26 --mac"
   },
   "build": {
     "appId": "local.pokertable.app",
     "productName": "Poker Table",
+    "directories": {
+      "output": "release"
+    },
     "files": [
       "dist/**",
       "electron/**",

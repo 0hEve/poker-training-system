@@ -23,6 +23,18 @@ function createWindow() {
     return { action: 'deny' };
   });
 
+  // Smoke test: `ELECTRON_SMOKE_SHOT=/tmp/x.png electron .` renders, captures the window and quits.
+  const shot = process.env.ELECTRON_SMOKE_SHOT;
+  if (shot) {
+    win.webContents.once('did-finish-load', () =>
+      setTimeout(async () => {
+        const img = await win.webContents.capturePage();
+        require('node:fs').writeFileSync(shot, img.toPNG());
+        app.quit();
+      }, 1500),
+    );
+  }
+
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl) win.loadURL(devUrl);
   else win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
