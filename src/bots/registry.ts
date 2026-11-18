@@ -4,12 +4,17 @@ import { builtinBots } from './builtin';
 /**
  * All bots available to the table and the simulator.
  *
- * Built-in bots live in `builtin.ts`. Private bots are discovered automatically from
- * `src/bots/local/<name>/index.ts` (default export: a `BotSpec` or an array of them).
- * `src/bots/local/` is git-ignored, so experimental bots stay on your machine.
+ * - `builtin.ts`: simple baselines (TAG, calling station, random).
+ * - `agents/<name>/index.ts`: the full bots shipped with the app (Opus 5.5, GPT 6.2 Sol).
+ * - `local/<name>/index.ts`: private bots, git-ignored so experiments stay on your machine.
+ *
+ * Folders are discovered automatically; the default export is a `BotSpec` or an array of them.
  */
-type LocalModule = { default?: BotSpec | BotSpec[] };
-const localModules = import.meta.glob<LocalModule>('./local/*/index.ts', { eager: true });
+type BotModule = { default?: BotSpec | BotSpec[] };
+const localModules = {
+  ...import.meta.glob<BotModule>('./agents/*/index.ts', { eager: true }),
+  ...import.meta.glob<BotModule>('./local/*/index.ts', { eager: true }),
+};
 
 function collect(): BotSpec[] {
   const out = [...builtinBots];

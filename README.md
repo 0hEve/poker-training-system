@@ -47,12 +47,34 @@ The simulator uses its own fast hand engine (`src/sim/table.ts`) and 5–7-card 
 rules match the table engine. With stacks reset every hand, a 6-max match runs at about 600,000
 hands/s on 16 cores with the simple built-in bots. A real bot's thinking time sets the actual pace.
 
+### Included bots
+
+Both were built from the research in `docs/research/bots/`, in separate worktrees, and decide in
+roughly 10–25 µs (40,000–100,000 decisions/s).
+
+- **Opus 5.5** (`src/bots/agents/opus`, by Claude Opus 5.5). Tracks a weighted range for every
+  opponent, narrowing it with each action according to that player's learned tendencies. It runs a
+  Monte Carlo equity estimate against those ranges, sizes bets by expected value using each
+  opponent's fold rate at that size, and mixes between close options. Preflop it uses solver-style
+  charts adjusted to opponents. `opus-static` (no learning) and `opus-b` are experiment variants.
+- **GPT 6.2 Sol** (`src/bots/agents/gpt`, by GPT 6.2 Sol). Mixed six-max preflop ranges, a
+  precomputed short-stack blind-vs-blind policy, range narrowing with card-removal (blocker)
+  effects postflop, and opponent modelling that weights recent hands more.
+
+Opus vs GPT, 3v3 at 6-max, 50,000 duplicate decks (100,000 hands):
+
+| Run | Opus bb/100 |
+|---|---|
+| 16 workers, three seeds | +35.5, +36.8, +37.7 (each ± ~3.5) |
+| One continuous session (bots adapt across all hands) | +63.9 ± 3.8 |
+
 ### Writing a bot
 
 Implement `BotSpec` from `src/bots/types.ts` (`decide(view)` returns fold, check, call, raise-to or
 all-in, and the optional `handEnd(summary)` reports each finished hand for opponent modelling).
-Built-in bots live in `src/bots/builtin.ts`. Private bots go in `src/bots/local/<name>/index.ts` as
-a default export. They're found automatically and that folder is git-ignored. Bots should decide in
+Baseline bots live in `src/bots/builtin.ts` and full bots in `src/bots/agents/<name>/`. Private bots go
+in `src/bots/local/<name>/index.ts` as a default export. They're found automatically and that folder
+is git-ignored. Bots should decide in
 well under 100 µs (10,000 decisions/s). The simulator reports anything slower.
 
 ## Run it

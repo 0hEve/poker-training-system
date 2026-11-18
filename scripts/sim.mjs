@@ -1,5 +1,5 @@
-// Bundles the simulator (src/sim/cli.ts + every registered bot, including the
-// git-ignored src/bots/local/*) with Vite into .cache/sim/cli.mjs, then runs it.
+// Bundles the simulator (src/sim/cli.ts + every registered bot: built-ins, src/bots/agents/*
+// and the git-ignored src/bots/local/*) with Vite into .cache/sim/cli.mjs, then runs it.
 // Usage: npm run sim -- --a tag --b station --hands 50000
 import { build } from 'vite';
 import { fileURLToPath, pathToFileURL } from 'node:url';
