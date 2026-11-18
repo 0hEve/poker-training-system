@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "vite/client"
+    ],
+    "lib": [
+      "ES2022"
+    ]
+  },
+  "include": [
+    "src/sim/cli.ts"
+  ],
+  "exclude": []
+}

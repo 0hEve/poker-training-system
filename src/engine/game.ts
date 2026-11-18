@@ -2,6 +2,7 @@ import { type Card, cardLabel } from './cards';
 import { evaluate, type HandValue } from './evaluator';
 import { buildPots, splitPot } from './pots';
 import { shuffledDeck } from './shuffle';
+import type { ActionEvent, ActionKind, Street as StreetNo } from '../bots/types';
 
 /* ------------------------------------------------------------------ types */
 
@@ -12,6 +13,8 @@ export interface Player {
   /** Colour tag used by the UI. */
   color: string;
   sittingOut: boolean;
+  /** Bot id controlling this player (see src/bots/registry.ts); absent = human. */
+  bot?: string;
 }
 
 export interface Settings {
@@ -73,6 +76,8 @@ export interface HandState {
   /** Size of the last full bet/raise on this street (the min-raise increment). */
   minRaise: number;
   result: HandResult | null;
+  /** Structured action history (blinds included), used by bots. Missing in hands saved by older versions. */
+  actions?: ActionEvent[];
 }
 
 export interface GameState {
@@ -103,6 +108,8 @@ export type Command =
   | { type: 'setStack'; id: string; stack: number }
   | { type: 'adjustStack'; id: string; delta: number }
   | { type: 'toggleSitOut'; id: string }
+  /** Hand a seat to a bot (bot id) or back to a human (null). */
+  | { type: 'setBot'; id: string; bot: string | null }
   | { type: 'resetChips' }
   | { type: 'updateSettings'; settings: Partial<Settings> }
   | { type: 'moveButton'; id: string };
@@ -231,6 +238,13 @@ export function reduce(state: GameState, cmd: Command): GameState {
       log(g, `${p.name}'s stack set to ${p.stack}.`);
       break;
     }
+    case 'setBot': {
+      const p = playerById(g, cmd.id);
+      if (!p) break;
+      if (cmd.bot) p.bot = cmd.bot;
+      else delete p.bot;
+      break;
+    }
     case 'toggleSitOut': {
       const p = playerById(g, cmd.id);
       if (p) p.sittingOut = !p.sittingOut;
@@ -336,6 +350,7 @@ function startHand(g: GameState, deck?: Card[]) {
     currentBet: 0,
     minRaise: g.settings.bigBlind,
     result: null,
+    actions: [],
   };
   g.hand = h;
   log(g, `— Hand #${h.number} — button: ${order[0].name}`);
@@ -344,12 +359,15 @@ function startHand(g: GameState, deck?: Card[]) {
   if (g.settings.ante > 0) {
     for (const s of seats) {
       const amt = commit(g, s, g.settings.ante, false);
+      record(h, seats.indexOf(s), 'post', amt);
       if (amt) log(g, `${nameOf(g, s)} antes ${amt}.`);
     }
   }
   const sbAmt = commit(g, seats[sbSeat], g.settings.smallBlind, true);
+  record(h, sbSeat, 'post', sbAmt);
   log(g, `${nameOf(g, seats[sbSeat])} posts small blind ${sbAmt}.`);
   const bbAmt = commit(g, seats[bbSeat], g.settings.bigBlind, true);
+  record(h, bbSeat, 'post', bbAmt);
   log(g, `${nameOf(g, seats[bbSeat])} posts big blind ${bbAmt}.`);
   seats[sbSeat].lastAction = `SB ${sbAmt}`;
   seats[bbSeat].lastAction = `BB ${bbAmt}`;
@@ -365,6 +383,12 @@ function startHand(g: GameState, deck?: Card[]) {
   // First to act preflop: left of the big blind (heads-up: the button/SB).
   h.toAct = nextToAct(h, bbSeat);
   if (h.toAct === null) runOutAndShowdown(g);
+}
+
+const STREET_NO: Record<Street, StreetNo> = { preflop: 0, flop: 1, turn: 2, river: 3, showdown: 3 };
+
+function record(h: HandState, seat: number, kind: ActionKind, amount: number) {
+  (h.actions ??= []).push({ seat, street: STREET_NO[h.street], kind, amount, allIn: h.seats[seat].allIn });
 }
 
 function nameOf(g: GameState, s: SeatState) {
@@ -440,17 +464,20 @@ function act(g: GameState, action: Action) {
   switch (action.type) {
     case 'fold':
       s.folded = true;
+      record(h, i, 'fold', 0);
       s.lastAction = 'Fold';
       log(g, `${p.name} folds.`);
       break;
     case 'check':
       if (!legal.check) throw new Error('Cannot check facing a bet');
+      record(h, i, 'check', 0);
       s.lastAction = 'Check';
       log(g, `${p.name} checks.`);
       break;
     case 'call': {
       if (!legal.call) throw new Error('Nothing to call');
       const amt = commit(g, s, legal.call, true);
+      record(h, i, 'call', amt);
       s.lastAction = s.allIn ? `Call ${amt} (all-in)` : `Call ${amt}`;
       log(g, `${p.name} calls ${amt}${s.allIn ? ' and is all-in' : ''}.`);
       break;
@@ -464,6 +491,7 @@ function act(g: GameState, action: Action) {
         // An all-in that cannot raise (not enough chips, or action not re-opened) is a call.
         if (to <= h.currentBet || !legal.raise) {
           const amt = commit(g, s, Math.min(p.stack, h.currentBet - s.bet), true);
+          record(h, i, 'call', amt);
           s.lastAction = s.allIn ? `Call ${amt} (all-in)` : `Call ${amt}`;
           log(g, `${p.name} calls ${amt}${s.allIn ? ' and is all-in' : ''}.`);
           break;
@@ -480,6 +508,7 @@ function act(g: GameState, action: Action) {
         h.minRaise = increment; // full bet/raise: sets new minimum and re-opens action
       }
       h.currentBet = to;
+      record(h, i, prevBet === 0 ? 'bet' : 'raise', to);
       s.lastAction = `${prevBet === 0 ? 'Bet' : 'Raise to'} ${to}${s.allIn ? ' (all-in)' : ''}`;
       log(g, `${p.name} ${word} ${to}${s.allIn ? ' and is all-in' : ''}.`);
       break;

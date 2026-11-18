@@ -1,6 +1,9 @@
 const { app, BrowserWindow, shell } = require('electron');
 const path = require('node:path');
 
+// Smoke tests can point the app at a throwaway profile so they never touch the user's saved table.
+if (process.env.ELECTRON_USER_DATA) app.setPath('userData', process.env.ELECTRON_USER_DATA);
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -24,14 +27,21 @@ function createWindow() {
   });
 
   // Smoke test: `ELECTRON_SMOKE_SHOT=/tmp/x.png electron .` renders, captures the window and quits.
+  // Optional: ELECTRON_SMOKE_JS runs a script in the page first (it may return a promise),
+  // and ELECTRON_SMOKE_WAIT sets the delay before capturing (ms, default 1500).
   const shot = process.env.ELECTRON_SMOKE_SHOT;
   if (shot) {
     win.webContents.once('did-finish-load', () =>
       setTimeout(async () => {
+        const js = process.env.ELECTRON_SMOKE_JS;
+        if (js) {
+          const out = await win.webContents.executeJavaScript(js).catch((e) => `error: ${e}`);
+          if (out !== undefined) console.log('smoke:', out);
+        }
         const img = await win.webContents.capturePage();
         require('node:fs').writeFileSync(shot, img.toPNG());
         app.quit();
-      }, 1500),
+      }, Number(process.env.ELECTRON_SMOKE_WAIT) || 1500),
     );
   }
 

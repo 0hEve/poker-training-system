@@ -22,6 +22,16 @@ export const ActionBar = memo(function ActionBar({ game, run }: Props) {
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!h || !la || !seat || !player) return null;
+  if (player.bot)
+    return (
+      <div className="action-bar sketch-panel" role="status">
+        <div className="action-who">
+          <span className="dot" style={{ background: player.color }} />
+          🤖 <b>{player.name}</b> is thinking…
+          <span className="muted"> · stack {formatChips(player.stack)}</span>
+        </div>
+      </div>
+    );
 
   const pot = potTotal(h);
   const toCall = la.call;

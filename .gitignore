@@ -5,3 +5,6 @@ node_modules/
 dist/
 release/
 *.tsbuildinfo
+.cache/
+# Private bots (see src/bots/registry.ts)
+src/bots/local/
