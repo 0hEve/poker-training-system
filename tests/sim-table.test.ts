@@ -67,3 +67,19 @@ describe('match runner', () => {
     expect(rep[0].bb100).toBeCloseTo(-rep[1].bb100, 6);
   });
 });
+
+describe('hand summaries', () => {
+  it('keep their player ids after the caller reuses its array', () => {
+    const kept: { ids: readonly string[]; seat: number }[] = [];
+    const bot: PokerBot = { decide: (v) => (v.toCall ? { type: 'fold' } : { type: 'check' }), handEnd: (s) => kept.push({ ids: s.playerIds, seat: s.seat }) };
+    const table = new FastTable({ smallBlind: 5, bigBlind: 10, ante: 0 });
+    const deck = new Int8Array(52);
+    shuffleDeck(deck, rngFor(1, 1));
+    const ids = ['a', 'b'];
+    table.playHand([bot, bot], ids, [1000, 1000], deck, 0);
+    ids[0] = 'b';
+    ids[1] = 'a';
+    table.playHand([bot, bot], ids, [1000, 1000], deck, 1);
+    expect(kept[0].ids).toEqual(['a', 'b']);
+  });
+});

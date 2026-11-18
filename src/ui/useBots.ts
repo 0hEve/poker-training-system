@@ -58,15 +58,18 @@ export function useBots(game: GameState, view: ViewState, run: (cmd: Command) =>
     notifiedHand.current = h.number;
     h.seats.forEach((s, i) => {
       const p = playerById(game, s.playerId);
-      const inst = p?.bot ? instances.current.get(p.id) : undefined;
-      if (!inst?.bot.handEnd || inst.botId !== p!.bot) return;
+      if (!p?.bot) return;
+      // Create the instance if this bot never had to act this hand (e.g. a walk in the big blind).
+      const bot = instanceFor(p.id, p.bot);
+      if (!bot?.handEnd) return;
       const summary = summaryForSeat(game, i);
       try {
-        if (summary) inst.bot.handEnd(summary);
+        if (summary) bot.handEnd(summary);
       } catch (e) {
-        console.error(`Bot ${inst.botId} handEnd failed`, e);
+        console.error(`Bot ${p.bot} handEnd failed`, e);
       }
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game]);
 
   // Auto-deal the next hand.

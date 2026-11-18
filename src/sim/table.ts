@@ -485,6 +485,7 @@ export class FastTable {
     const actions = this.actions.slice();
     const startStacks = this.startStacks.slice();
     const net = this.net.slice();
+    const ids = playerIds.slice(); // callers may reuse their array for the next hand
     for (let i = 0; i < n; i++) {
       const bot = this.bots[i];
       if (!bot.handEnd) continue;
@@ -492,7 +493,7 @@ export class FastTable {
         handId,
         numSeats: n,
         seat: i,
-        playerIds,
+        playerIds: ids,
         bigBlind: this.cfg.bigBlind,
         startStacks,
         board,
