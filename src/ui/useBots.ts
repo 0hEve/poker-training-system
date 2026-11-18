@@ -1,0 +1,79 @@
+import { useEffect, useRef } from 'react';
+import { handInProgress, playerById, type Command, type GameState } from '../engine/game';
+import { findBot } from '../bots/registry';
+import { summaryForSeat, toEngineAction, viewForToAct } from '../bots/live';
+import type { PokerBot } from '../bots/types';
+import type { ViewState } from '../store';
+
+interface Instance {
+  botId: string;
+  bot: PokerBot;
+}
+
+/**
+ * Drives bot-controlled seats at the live table: acts for them after `botDelayMs`,
+ * tells them how each hand ended, and optionally deals the next hand automatically.
+ * Each player keeps one bot instance (its memory) until its bot is changed.
+ */
+export function useBots(game: GameState, view: ViewState, run: (cmd: Command) => void) {
+  const instances = useRef(new Map<string, Instance>());
+  const notifiedHand = useRef<number | null>(null);
+
+  const instanceFor = (playerId: string, botId: string): PokerBot | null => {
+    const cur = instances.current.get(playerId);
+    if (cur?.botId === botId) return cur.bot;
+    const spec = findBot(botId);
+    if (!spec) return null;
+    const bot = spec.create({ seed: (Math.random() * 2 ** 32) >>> 0, playerId });
+    instances.current.set(playerId, { botId, bot });
+    return bot;
+  };
+
+  // Act for a bot whose turn it is.
+  useEffect(() => {
+    const h = game.hand;
+    if (view.botsPaused || !h || h.result || h.toAct === null) return;
+    const p = playerById(game, h.seats[h.toAct].playerId);
+    if (!p?.bot) return;
+    const t = setTimeout(() => {
+      const bot = instanceFor(p.id, p.bot!);
+      const v = viewForToAct(game);
+      if (!bot || !v) return;
+      let decision;
+      try {
+        decision = bot.decide(v);
+      } catch (e) {
+        console.error(`Bot ${p.bot} failed`, e);
+      }
+      run({ type: 'act', action: toEngineAction(game, decision) });
+    }, view.botDelayMs);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, view.botDelayMs, view.botsPaused, run]);
+
+  // Report finished hands to every bot that played them.
+  useEffect(() => {
+    const h = game.hand;
+    if (!h?.result || notifiedHand.current === h.number) return;
+    notifiedHand.current = h.number;
+    h.seats.forEach((s, i) => {
+      const p = playerById(game, s.playerId);
+      const inst = p?.bot ? instances.current.get(p.id) : undefined;
+      if (!inst?.bot.handEnd || inst.botId !== p!.bot) return;
+      const summary = summaryForSeat(game, i);
+      try {
+        if (summary) inst.bot.handEnd(summary);
+      } catch (e) {
+        console.error(`Bot ${inst.botId} handEnd failed`, e);
+      }
+    });
+  }, [game]);
+
+  // Auto-deal the next hand.
+  useEffect(() => {
+    if (!view.autoDeal || view.botsPaused || handInProgress(game)) return;
+    if (game.players.filter((p) => !p.sittingOut && p.stack > 0).length < 2) return;
+    const t = setTimeout(() => run({ type: 'startHand' }), Math.max(150, view.botDelayMs * 3));
+    return () => clearTimeout(t);
+  }, [game, view.autoDeal, view.botsPaused, view.botDelayMs, run]);
+}

@@ -8,12 +8,14 @@ import { Table } from './Table';
 import { ActionBar } from './ActionBar';
 import { SidePanel } from './SidePanel';
 import { PlayingCard } from './Card';
+import { useBots } from './useBots';
 
 export function App() {
   const { state, dispatch, run } = useAppStore();
   const { game, view, error } = state;
   const h = game.hand;
   const busy = handInProgress(game);
+  useBots(game, view, run);
 
   const pickViewer = useCallback((id: string) => dispatch({ kind: 'view', patch: { viewerId: id, followAction: false } }), [dispatch]);
 

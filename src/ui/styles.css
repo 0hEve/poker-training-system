@@ -1025,3 +1025,114 @@ input[type='range'] {
     transition: none !important;
   }
 }
+
+/* ------------------------------------------------------------ bots & arena */
+
+.bots,
+.arena {
+  padding: 0.75rem;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.bots ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.bots .player-row {
+  grid-template-columns: auto 1fr 150px;
+}
+
+.bot-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.speed {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.speed > span {
+  margin-right: 0.3rem;
+}
+
+.mini.on {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.arena .field {
+  grid-template-columns: 1fr 160px;
+}
+
+.arena .check {
+  font-size: 0.85rem;
+}
+
+.arena-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.progress {
+  flex: 1;
+  height: 12px;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--wobbly-sm);
+  overflow: hidden;
+  background: var(--paper-2);
+}
+
+.progress > div {
+  height: 100%;
+  background: var(--ink);
+  transition: width 0.2s;
+}
+
+.arena-report table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-report th,
+.arena-report td {
+  padding: 0.25rem 0.3rem;
+  text-align: right;
+  border-bottom: 1px dashed rgba(35, 26, 19, 0.3);
+}
+
+.arena-report th:first-child,
+.arena-report td:first-child {
+  text-align: left;
+}
+
+.arena-report .pos {
+  color: #1e7a3a;
+  font-weight: 700;
+}
+
+.arena-report .neg {
+  color: #a93226;
+  font-weight: 700;
+}
+
+.arena-error {
+  color: #a93226;
+  font-size: 0.82rem;
+}

@@ -2,8 +2,8 @@
 
 A hand-drawn, 3D-style **No-Limit Texas Hold'em table** for playing by hand on one screen.
 It runs as a **macOS desktop app** (Electron) and in **any browser** (Vite build).
-There are no bots: every action is entered manually, and the engine handles blinds,
-turn order, min-raises, side pots, showdown and chip counts.
+Every action can be entered by hand, or any seat can be handed to a **bot**. The engine
+handles blinds, turn order, min-raises, side pots, showdown and chip counts.
 
 ![Poker table mid-hand](docs/screenshot.jpg)
 
@@ -25,6 +25,30 @@ turn order, min-raises, side pots, showdown and chip counts.
 - **Manual control.** Add, remove or rename players, edit stacks between hands, sit out, move the
   button, cancel a hand (everything refunded), and **undo** (⌘Z).
 
+## Bots and the simulator
+
+- **Bots at the table.** In the *Bots* tab, set any player to a bot. Bots act on their own turn at
+  *Slow / Normal / Fast / Instant* speed, can auto-deal hands, and can be paused (e.g. to undo).
+- **Arena tab.** Two bots play each other headlessly (default 3v3 at 6-max, 50,000 duplicate decks)
+  across Web Workers, and the arena reports bb/100 with a 95% confidence interval, VPIP/PFR and
+  µs per decision.
+- **CLI.** `npm run sim -- --a tag --b station` runs the same match from the terminal on every core.
+  Use `--hands`, `--seats a,b,c`, `--workers 1` (one continuous session, so bots can adapt across the
+  whole match), `--bench <bot>` and `--list`.
+
+The simulator uses its own fast hand engine (`src/sim/table.ts`) and 5–7-card evaluator
+(`src/sim/eval.ts`, ~10 ns per hand). Tests replay random hands through both engines to check the
+rules match the table engine. With stacks reset every hand, a 6-max match runs at about 600,000
+hands/s on 16 cores with the simple built-in bots. A real bot's thinking time sets the actual pace.
+
+### Writing a bot
+
+Implement `BotSpec` from `src/bots/types.ts` (`decide(view)` returns fold, check, call, raise-to or
+all-in, and the optional `handEnd(summary)` reports each finished hand for opponent modelling).
+Built-in bots live in `src/bots/builtin.ts`. Private bots go in `src/bots/local/<name>/index.ts` as
+a default export. They're found automatically and that folder is git-ignored. Bots should decide in
+well under 100 µs (10,000 decisions/s). The simulator reports anything slower.
+
 ## Run it
 
 ```bash
@@ -34,6 +58,7 @@ npm run electron:dev   # desktop app with hot reload
 npm run electron       # build, then open the desktop app
 npm run dist:mac       # package a .dmg/.zip into release/ (fetches electron-builder via npx)
 npm test               # engine tests
+npm run sim -- --help  # bot-vs-bot simulator
 ```
 
 Keyboard: **N** deals the next hand, **⌘Z / Ctrl+Z** undoes.
@@ -43,9 +68,11 @@ Keyboard: **N** deals the next hand, **⌘Z / Ctrl+Z** undoes.
 | Path | What |
 | --- | --- |
 | `src/engine/` | Pure TypeScript rules engine (reducer, evaluator, pots, shuffle). No UI. |
+| `src/bots/` | Bot API, registry, built-in bots and the live-table adapter. `local/` holds private bots (git-ignored). |
+| `src/sim/` | Fast headless hand engine, evaluator, match runner, CLI and arena worker. |
 | `src/art/` | Deterministic hand-inked SVG art (cards, chips, stacks, dealer button, textures), served as cached data-URL sprites. |
 | `src/ui/` | React table, seats, action bar and side panel. |
 | `src/store.ts` | App state, undo history and localStorage persistence. |
 | `electron/` | Desktop shell. |
-| `docs/research/` | Rules and performance research the engine is based on. |
+| `docs/research/` | Rules and performance research the engine is based on; `bots/` covers bot architecture, fast evaluation and strategy. |
 | `design-samples/` | The blind art-direction bake-off and its council review. |

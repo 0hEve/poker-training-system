@@ -2,6 +2,8 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { handInProgress, MAX_PLAYERS, type Command, type GameState, type Settings } from '../engine/game';
 import { formatChips } from '../engine/chips';
 import type { AppAction, ViewState } from '../store';
+import { allBots } from '../bots/registry';
+import { Arena } from './Arena';
 
 interface Props {
   game: GameState;
@@ -11,17 +13,19 @@ interface Props {
 }
 
 export const SidePanel = memo(function SidePanel({ game, view, run, dispatch }: Props) {
-  const [tab, setTab] = useState<'players' | 'settings' | 'log'>('players');
+  const [tab, setTab] = useState<'players' | 'bots' | 'arena' | 'settings' | 'log'>('players');
   return (
     <aside className="side-panel sketch-panel">
       <nav className="tabs">
-        {(['players', 'settings', 'log'] as const).map((t) => (
+        {(['players', 'bots', 'arena', 'settings', 'log'] as const).map((t) => (
           <button key={t} className={`tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
             {t[0].toUpperCase() + t.slice(1)}
           </button>
         ))}
       </nav>
       {tab === 'players' && <Players game={game} view={view} run={run} dispatch={dispatch} />}
+      {tab === 'bots' && <Bots game={game} view={view} run={run} dispatch={dispatch} />}
+      {tab === 'arena' && <Arena />}
       {tab === 'settings' && <SettingsForm game={game} view={view} run={run} dispatch={dispatch} />}
       {tab === 'log' && <Log lines={game.log} />}
     </aside>
@@ -100,6 +104,65 @@ function Players({ game, view, run, dispatch }: Props) {
         </label>
         <button className="btn small ghost" onClick={() => dispatch({ kind: 'view', patch: { viewerId: null, followAction: false } })}>
           Hide all cards
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const SPEEDS = [
+  { ms: 1500, label: 'Slow' },
+  { ms: 600, label: 'Normal' },
+  { ms: 150, label: 'Fast' },
+  { ms: 0, label: 'Instant' },
+];
+
+/** Assign bots to seats and control how fast they play at the live table. */
+function Bots({ game, view, run, dispatch }: Props) {
+  const setView = (patch: Partial<ViewState>) => dispatch({ kind: 'view', patch });
+  return (
+    <div className="bots">
+      <p className="hint">Hand any seat to a bot. Bots act on their own turn; their cards stay hidden unless you pick that seat.</p>
+      <ul>
+        {game.players.map((p) => (
+          <li key={p.id} className="player-row">
+            <span className="dot" style={{ background: p.color }} />
+            <span className="bot-name">{p.name}</span>
+            <select value={p.bot ?? ''} onChange={(e) => run({ type: 'setBot', id: p.id, bot: e.target.value || null })} aria-label={`Controller for ${p.name}`}>
+              <option value="">Human</option>
+              {allBots.map((b) => (
+                <option key={b.id} value={b.id} title={b.description}>
+                  🤖 {b.name}
+                </option>
+              ))}
+              {p.bot && !allBots.some((b) => b.id === p.bot) && <option value={p.bot}>Missing bot: {p.bot}</option>}
+            </select>
+          </li>
+        ))}
+      </ul>
+      <div className="viewer-opts">
+        <div className="speed">
+          <span>Bot speed</span>
+          {SPEEDS.map((s) => (
+            <button key={s.ms} className={`mini ${view.botDelayMs === s.ms ? 'on' : ''}`} onClick={() => setView({ botDelayMs: s.ms })}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <label>
+          <input type="checkbox" checked={view.autoDeal} onChange={(e) => setView({ autoDeal: e.target.checked })} />
+          Auto-deal the next hand
+        </label>
+        <label>
+          <input type="checkbox" checked={view.botsPaused} onChange={(e) => setView({ botsPaused: e.target.checked })} />
+          Pause bots
+        </label>
+        <button
+          className="btn small ghost"
+          onClick={() => game.players.forEach((p) => run({ type: 'setBot', id: p.id, bot: null }))}
+          disabled={!game.players.some((p) => p.bot)}
+        >
+          Make everyone human
         </button>
       </div>
     </div>

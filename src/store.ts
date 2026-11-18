@@ -16,6 +16,12 @@ export interface ViewState {
   privacy: boolean;
   /** Viewer who has confirmed they are looking (privacy mode). */
   confirmedViewerId: string | null;
+  /** Delay before a bot acts, in ms (0 = instant). */
+  botDelayMs: number;
+  /** Deal the next hand automatically when the previous one ends. */
+  autoDeal: boolean;
+  /** Stop bots from acting (e.g. to undo or inspect a spot). */
+  botsPaused: boolean;
 }
 
 export interface AppState {
@@ -37,7 +43,7 @@ const HISTORY_LIMIT = 60;
 
 function load(): AppState {
   let game: GameState | null = null;
-  let view: ViewState = { viewerId: null, followAction: true, revealAll: false, privacy: false, confirmedViewerId: null };
+  let view: ViewState = { viewerId: null, followAction: true, revealAll: false, privacy: false, confirmedViewerId: null, botDelayMs: 600, autoDeal: false, botsPaused: false };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -57,7 +63,9 @@ function syncViewer(game: GameState, view: ViewState, prevViewerId: string | nul
   const h = game.hand;
   if (view.followAction && h && !h.result && h.toAct !== null) {
     const id = h.seats[h.toAct].playerId;
-    if (id !== view.viewerId) next = { ...view, viewerId: id };
+    // Only follow humans: a bot's cards stay hidden unless someone picks that seat.
+    const isBot = !!game.players.find((p) => p.id === id)?.bot;
+    if (id !== view.viewerId && !isBot) next = { ...view, viewerId: id };
   }
   if (next.viewerId !== prevViewerId && next.confirmedViewerId !== null && next.confirmedViewerId !== next.viewerId) {
     next = { ...next, confirmedViewerId: null };

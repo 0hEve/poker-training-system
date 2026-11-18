@@ -117,6 +117,7 @@ export const Table = memo(function Table({ game, view, onPickViewer }: Props) {
               color={p.color}
               stack={p.stack}
               sittingOut={p.sittingOut}
+              bot={p.bot ?? null}
               inHand={!!seat}
               hole0={seat?.hole[0] ?? null}
               hole1={seat?.hole[1] ?? null}
@@ -152,6 +153,8 @@ interface SeatProps {
   color: string;
   stack: number;
   sittingOut: boolean;
+  /** Bot id controlling this seat, null for a human. */
+  bot: string | null;
   inHand: boolean;
   hole0: Card | null;
   hole1: Card | null;
@@ -218,6 +221,7 @@ const SeatView = memo(function SeatView(p: SeatProps) {
           <span className="plate-text">
             <span className="plate-name">
               {p.name}
+              {p.bot && <span className="bot-tag" title={`Played by bot: ${p.bot}`}> 🤖</span>}
               {p.isViewer && <span className="eye" title="Viewing"> 👁</span>}
             </span>
             <span className="plate-stack">{p.sittingOut ? 'sitting out' : p.stack === 0 && !p.inHand ? 'busted' : formatChips(p.stack)}</span>
