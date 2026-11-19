@@ -2,3 +2,7 @@
 	path = external/fullhouse-bot
 	url = https://github.com/advitrocks9/fullhouse-bot.git
 	shallow = true
+[submodule "external/poker-sequoia"]
+	path = external/poker-sequoia
+	url = https://github.com/nnicholas-c/poker_sequoia.git
+	shallow = true
