@@ -25,7 +25,11 @@ const MAX_POINTS = 800;
 export function useBankroll() {
   const [state, setState] = useState<BankrollState>({ status: 'idle', cfg: null, snapshot: null, history: [], speed: 20, rate: 0, error: null });
   const worker = useRef<Worker | null>(null);
+  // Sampling state lives in refs and is updated once per message, never inside a setState
+  // updater: React may run updaters more than once (StrictMode, replayed updates), which used to
+  // double the stride repeatedly and freeze the chart while the cards kept updating.
   const stride = useRef(1);
+  const history = useRef<StackPoint[]>([]);
   const rateRef = useRef({ t: 0, hand: 0 });
 
   const kill = () => {
@@ -37,10 +41,11 @@ export function useBankroll() {
   const start = useCallback((cfg: BankrollConfig, speed: number) => {
     kill();
     stride.current = 1;
+    history.current = [{ hand: 0, stacks: cfg.players.map(() => cfg.stack) }];
     rateRef.current = { t: performance.now(), hand: 0 };
     const w = new Worker(new URL('../../sim/bankroll.worker.ts', import.meta.url), { type: 'module' });
     worker.current = w;
-    setState({ status: 'running', cfg, snapshot: null, history: [{ hand: 0, stacks: cfg.players.map(() => cfg.stack) }], speed, rate: 0, error: null });
+    setState({ status: 'running', cfg, snapshot: null, history: history.current, speed, rate: 0, error: null });
     w.onmessage = (e: MessageEvent<{ snapshot?: BankrollSnapshot; error?: string }>) => {
       if (e.data.error) {
         kill();
@@ -55,20 +60,21 @@ export function useBankroll() {
         rate = ((snap.hand - r.hand) * 1000) / (now - r.t);
         rateRef.current = { t: now, hand: snap.hand };
       }
-      setState((s) => {
-        let history = s.history;
-        const lastHand = history.length ? history[history.length - 1].hand : -1;
-        if (snap.hand >= lastHand + stride.current || (snap.done && snap.hand !== lastHand)) {
-          history = [...history, { hand: snap.hand, stacks: snap.players.map((p) => p.stack) }];
-          if (history.length > MAX_POINTS) {
-            history = history.filter((_, i) => i % 2 === 0 || i === history.length - 1);
-            stride.current *= 2;
-          }
+      let h = history.current;
+      const lastHand = h.length ? h[h.length - 1].hand : -1;
+      if (snap.hand >= lastHand + stride.current || (snap.done && snap.hand !== lastHand)) {
+        h = [...h, { hand: snap.hand, stacks: snap.players.map((p) => p.stack) }];
+        if (h.length > MAX_POINTS) {
+          h = h.filter((_, i) => i % 2 === 0 || i === h.length - 1);
+          stride.current *= 2;
         }
+        history.current = h;
+      }
+      setState((s) => {
         return {
           ...s,
           snapshot: snap,
-          history,
+          history: h,
           rate: rate ?? s.rate,
           status: snap.done ? 'done' : s.status === 'paused' ? 'paused' : 'running',
         };
@@ -97,6 +103,7 @@ export function useBankroll() {
   }, []);
   const reset = useCallback(() => {
     kill();
+    history.current = [];
     setState((s) => ({ ...s, status: 'idle', snapshot: null, history: [], rate: 0, error: null }));
   }, []);
 
