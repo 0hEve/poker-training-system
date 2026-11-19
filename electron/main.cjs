@@ -2,8 +2,7 @@ const { app, BrowserWindow, shell, protocol, net } = require('electron');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
-// The built app is served from app://bundle/ rather than file://, so the page has a secure origin
-// that may call the local bot gateway (http://127.0.0.1:7878) and run module workers.
+// The packaged app uses a secure origin for module workers and persisted game state.
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
 ]);

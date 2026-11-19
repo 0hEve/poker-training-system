@@ -1,6 +1,6 @@
 /// <reference types="node" />
 /** Decision latency distribution: node src/bots/agents/opus/gen/run.mjs latency.ts  (env HERO, OPP, HANDS) */
-import { getBot } from '../../../registry';
+import { getBenchmarkBot as getBot } from '../../../builtin';
 import { FastTable } from '../../../../sim/table';
 import { rngFor, shuffleDeck } from '../../../../sim/rng';
 import type { PokerBot } from '../../../types';

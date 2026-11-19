@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGame, reduce, type GameState } from '../src/engine/game';
-import { getBot } from '../src/bots/registry';
+import { getBenchmarkBot as getBot } from '../src/bots/builtin';
 import { summaryForSeat, toEngineAction, viewForToAct } from '../src/bots/live';
 import { FastTable } from '../src/sim/table';
 import { rngFor, shuffleDeck } from '../src/sim/rng';

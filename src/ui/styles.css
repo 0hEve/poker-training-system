@@ -2132,10 +2132,6 @@ input[type='range'] {
   text-overflow: ellipsis;
 }
 
-.seat-warning {
-  color: #a4331f;
-}
-
 .bank-preview {
   display: flex;
   flex-wrap: wrap;

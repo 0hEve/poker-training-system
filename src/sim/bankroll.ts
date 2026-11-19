@@ -100,11 +100,7 @@ export class BankrollSession {
     return played;
   }
 
-  async playOneAsync(signal: AbortSignal) {
-    if (!this.done) await this.playOne(signal);
-  }
-
-  private playOne(signal?: AbortSignal) {
+  private playOne() {
     const P = this.players;
     if (this.cfg.rebuy)
       for (const p of P)
@@ -129,18 +125,13 @@ export class BankrollSession {
       if (P[i].stack > 0) order.push(i);
     }
     shuffleDeck(this.deck, rngFor(this.cfg.seed, this.hand));
-    const bots = order.map((i) => this.bots[i]);
-    const ids = order.map((i) => this.ids[i]);
-    const stacks = order.map((i) => P[i].stack);
-    if (signal) {
-      return this.table.playHandAsync(bots, ids, stacks, this.deck, this.hand, signal)
-        .then((net) => this.settleHand(order, net));
-    }
-    this.settleHand(order, this.table.playHand(bots, ids, stacks, this.deck, this.hand));
-  }
-
-  private settleHand(order: number[], net: number[]) {
-    const P = this.players;
+    const net = this.table.playHand(
+      order.map((i) => this.bots[i]),
+      order.map((i) => this.ids[i]),
+      order.map((i) => P[i].stack),
+      this.deck,
+      this.hand,
+    );
     this.hand++;
     let pot = 0;
     for (let k = 0; k < order.length; k++) if (net[k] > 0) pot += net[k];

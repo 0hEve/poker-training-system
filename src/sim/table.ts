@@ -106,41 +106,6 @@ export class FastTable {
    * `deck` must hold at least 2 * players + 8 distinct cards in dealing order.
    */
   playHand(bots: PokerBot[], playerIds: readonly string[], stacks: readonly number[], deck: ArrayLike<number>, handId: number): number[] {
-    this.startHand(bots, playerIds, stacks, deck, handId);
-    while (!this.done) this.askAndApply(this.toAct);
-    return this.finishHand(handId, playerIds);
-  }
-
-  /** Browser workers can be stopped while a remote bot is waiting on the gateway. */
-  async playHandAsync(bots: PokerBot[], playerIds: readonly string[], stacks: readonly number[], deck: ArrayLike<number>, handId: number, signal: AbortSignal): Promise<number[]> {
-    this.startHand(bots, playerIds, stacks, deck, handId);
-    while (!this.done) {
-      const i = this.toAct;
-      const bot = this.bots[i];
-      if (!bot.decideAsync) {
-        this.askAndApply(i);
-        continue;
-      }
-      const v = this.fillView(i);
-      const st = this.stats[i];
-      const t0 = this.timeBots ? now() : 0;
-      let d: Decision;
-      try {
-        d = await bot.decideAsync(v, signal);
-      } catch {
-        signal.throwIfAborted();
-        st.errors++;
-        d = { type: v.toCall === 0 ? 'check' : 'fold' };
-      }
-      signal.throwIfAborted();
-      if (this.timeBots) st.thinkMs += now() - t0;
-      st.decisions++;
-      this.apply(i, v, d, st);
-    }
-    return this.finishHand(handId, playerIds);
-  }
-
-  private startHand(bots: PokerBot[], playerIds: readonly string[], stacks: readonly number[], deck: ArrayLike<number>, handId: number) {
     const n = bots.length;
     if (n < 2) throw new Error('Need at least two players');
     this.n = n;
@@ -198,10 +163,9 @@ export class FastTable {
 
     this.toAct = this.nextToAct(this.bbSeat);
     if (this.toAct < 0) this.advanceStreet();
-  }
+    while (!this.done) this.askAndApply(this.toAct);
 
-  private finishHand(handId: number, playerIds: readonly string[]): number[] {
-    for (let i = 0; i < this.n; i++) this.net[i] = this.stacks[i] - this.startStacks[i];
+    for (let i = 0; i < n; i++) this.net[i] = this.stacks[i] - this.startStacks[i];
     this.notifyHandEnd(handId, playerIds);
     return this.net;
   }

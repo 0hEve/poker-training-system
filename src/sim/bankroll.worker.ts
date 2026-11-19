@@ -20,28 +20,16 @@ let paused = false;
 let owed = 0;
 let last = 0;
 let timer: ReturnType<typeof setTimeout> | null = null;
-let busy = false;
-let remote = false;
-const signal = new AbortController().signal;
 const TICK_MS = 50;
 
-async function tick() {
+function tick() {
   timer = null;
   if (!session || paused) return;
   const now = performance.now();
   const dt = Math.min(250, now - last);
   last = now;
-  busy = true;
   try {
-    if (remote) {
-      if (speed > 0) owed = Math.min(Math.max(1, speed / 4), owed + (speed * dt) / 1000);
-      const until = now + 40;
-      while (!paused && !session.done && (speed <= 0 || owed >= 1)) {
-        if (speed > 0) owed--;
-        await session.playOneAsync(signal);
-        if (performance.now() >= until) break;
-      }
-    } else if (speed <= 0) {
+    if (speed <= 0) {
       // Flat out: play in small batches for ~40 ms, then report.
       const until = now + 40;
       do session.play(25);
@@ -55,11 +43,9 @@ async function tick() {
       }
     }
     self.postMessage({ snapshot: session.snapshot() });
-    if (!paused && !session.done) timer = setTimeout(tick, remote && speed <= 0 ? 0 : TICK_MS);
+    if (!session.done) timer = setTimeout(tick, TICK_MS);
   } catch (e) {
     self.postMessage({ error: e instanceof Error ? e.message : String(e) });
-  } finally {
-    busy = false;
   }
 }
 
@@ -68,7 +54,6 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   try {
     if (m.type === 'start') {
       session = new BankrollSession(m.cfg, getBot);
-      remote = m.cfg.players.some((id) => 'remote' in getBot(id));
       speed = m.speed;
       paused = false;
       owed = 0;
@@ -81,7 +66,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
     } else if (m.type === 'resume') {
       paused = false;
     }
-    if (session && !paused && !timer && !busy && !session.done) {
+    if (session && !paused && !timer && !session.done) {
       last = performance.now();
       timer = setTimeout(tick, speed > 0 && speed < 20 ? 1000 / speed : 0);
     }
