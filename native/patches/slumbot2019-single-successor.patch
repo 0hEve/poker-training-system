@@ -1,0 +1,50 @@
+diff --git a/src/ecfr.cpp b/src/ecfr.cpp
+index a5f1ded..a355ef0 100644
+--- a/src/ecfr.cpp
++++ b/src/ecfr.cpp
+@@ -198,6 +198,9 @@ double ECFRThread::Process(ECFRNode *node) {
+       return val;
+     }
+   }
++  // A forced move (e.g. check after both players are all-in) has no strategy to learn;
++  // no regrets are allocated for it, so pass straight through.
++  if (node->NumSuccs() == 1) return Process(node->IthSucc(0));
+   int pa = node->PlayerActing();
+   if (pa == p_) {
+     // Our choice
+@@ -305,7 +308,7 @@ void ECFR::ReadRegrets(ECFRNode *node, unique_ptr<Reader> *readers) {
+   Reader *reader = readers[index].get();
+   int num_buckets = buckets_.NumBuckets(st);
+   double *regrets = node->Regrets();
+-  int num_values = num_buckets * num_succs;
++  int num_values = num_succs > 1 ? num_buckets * num_succs : 0;
+   for (int i = 0; i < num_values; ++i) {
+     regrets[i] = reader->ReadDoubleOrDie();
+   }
+@@ -324,7 +327,7 @@ void ECFR::ReadSumprobs(ECFRNode *node, unique_ptr<Reader> *readers) {
+   Reader *reader = readers[index].get();
+   int num_buckets = buckets_.NumBuckets(st);
+   int *sumprobs = node->Sumprobs();
+-  int num_values = num_buckets * num_succs;
++  int num_values = num_succs > 1 ? num_buckets * num_succs : 0;
+   for (int i = 0; i < num_values; ++i) {
+     sumprobs[i] = reader->ReadIntOrDie();
+   }
+@@ -375,7 +378,7 @@ void ECFR::WriteRegrets(ECFRNode *node, unique_ptr<Writer> *writers) {
+   Writer *writer = writers[index].get();
+   int num_buckets = buckets_.NumBuckets(st);
+   double *regrets = node->Regrets();
+-  int num_values = num_buckets * num_succs;
++  int num_values = num_succs > 1 ? num_buckets * num_succs : 0;
+   for (int i = 0; i < num_values; ++i) {
+     writer->WriteDouble(regrets[i]);
+   }
+@@ -394,7 +397,7 @@ void ECFR::WriteSumprobs(ECFRNode *node, unique_ptr<Writer> *writers) {
+   Writer *writer = writers[index].get();
+   int num_buckets = buckets_.NumBuckets(st);
+   int *sumprobs = node->Sumprobs();
+-  int num_values = num_buckets * num_succs;
++  int num_values = num_succs > 1 ? num_buckets * num_succs : 0;
+   for (int i = 0; i < num_values; ++i) {
+     writer->WriteInt(sumprobs[i]);
+   }

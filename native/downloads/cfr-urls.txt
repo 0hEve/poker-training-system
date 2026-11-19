@@ -1,0 +1,102 @@
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/flop-k50.bin
+  dir=@HOME@/cfr/k50
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/river-k50.bin
+  dir=@HOME@/cfr/k50
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/turn-k50.bin
+  dir=@HOME@/cfr/k50
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/INSTALL.md
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/MODEL_CARD.md
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.SHA256SUMS
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-001
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-002
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-003
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-004
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-005
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-006
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-007
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-008
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-009
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-010
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-011
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-012
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-013
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.bin.part-014
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/NP3-100BB-v060-seed-2026101935003.manifest.json
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/RELEASE_NOTES.md
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.6.0/verify_v060_bundle.py
+  dir=@HOME@/cfr/v060
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/MODEL_CARD.md
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/O10B-HU20-opponent-sampled-average-seed-2026100601.jsonl.gz
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/RELEASE_NOTES.md
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/SHA256SUMS
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/catalog-manifest.json
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/release-manifest.json
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.4.2/verify_v042_bundle.py
+  dir=@HOME@/cfr/v042
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/INSTALL.md
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/MODEL_CARD.md
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/O5B-HU100-K50-menu-v2-frozen-average-seed-2026100601.jsonl.gz.part-001
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/O5B-HU100-K50-menu-v2-frozen-average-seed-2026100601.jsonl.gz.part-002
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/O5B-HU100-K50-menu-v2-frozen-average-seed-2026100601.jsonl.gz.part-003
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/RELEASE_NOTES.md
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/SHA256SUMS
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/release-manifest.json
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.3/verify_hu100_bundle.py
+  dir=@HOME@/cfr/v053
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-001
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-002
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-003
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-004
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-005
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/HU200-v055-three-seed-blend.average.gz.part-006
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/INSTALL.md
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/MODEL_CARD.md
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/RELEASE_NOTES.md
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/SHA256SUMS
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/release-manifest.json
+  dir=@HOME@/cfr/v055
+https://github.com/dberweger2017/CFR-NLHE-6max/releases/download/v0.5.5/verify_hu200_bundle.py
+  dir=@HOME@/cfr/v055
