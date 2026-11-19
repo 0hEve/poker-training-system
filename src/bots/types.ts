@@ -111,6 +111,8 @@ export interface HandSummary {
 
 export interface PokerBot {
   decide(view: BotView): Decision;
+  /** Remote bots can wait for the gateway without blocking the live table. */
+  decideAsync?(view: BotView, signal: AbortSignal): Promise<Decision>;
   /** Optional: learn from the finished hand (opponent modelling). */
   handEnd?(summary: HandSummary): void;
 }
@@ -127,5 +129,7 @@ export interface BotSpec {
   id: string;
   name: string;
   description: string;
+  /** Dealt player counts supported by an in-process bot, when restricted. */
+  seats?: [number, number];
   create(opts: BotCreateOptions): PokerBot;
 }

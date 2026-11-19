@@ -43,7 +43,7 @@ export interface AppState {
 }
 
 export type AppAction =
-  | { kind: 'cmd'; cmd: Command }
+  | { kind: 'cmd'; cmd: Command; expectedGame?: GameState }
   | { kind: 'undo' }
   | { kind: 'view'; patch: Partial<ViewState> }
   | { kind: 'clearError' }
@@ -54,6 +54,17 @@ export type AppAction =
 const STORAGE_KEY = 'poker-table/v1';
 const HISTORY_LIMIT = 60;
 
+function migrateControllers(game: GameState): GameState {
+  return {
+    ...game,
+    players: game.players.map((p) => {
+      if (p.bot === 'fullhouse-py') return { ...p, bot: 'fullhouse' };
+      if (p.bot === 'sequoia-py') return { ...p, bot: 'sequoia' };
+      return p;
+    }),
+  };
+}
+
 function load(): AppState {
   let game: GameState | null = null;
   let view: ViewState = { viewerId: null, followAction: true, revealAll: false, privacy: false, confirmedViewerId: null, botDelayMs: 600, autoDeal: false, botsPaused: false, mode: 'table' };
@@ -61,7 +72,7 @@ function load(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed?.game?.players) game = parsed.game;
+      if (parsed?.game?.players) game = migrateControllers(parsed.game);
       if (parsed?.view) view = { ...view, ...parsed.view };
     }
   } catch {
@@ -89,6 +100,8 @@ function syncViewer(game: GameState, view: ViewState, prevViewerId: string | nul
 function appReducer(state: AppState, a: AppAction): AppState {
   switch (a.kind) {
     case 'cmd':
+      // An asynchronous bot answer is only valid for the table state it saw.
+      if (a.expectedGame && (state.game !== a.expectedGame || state.view.botsPaused)) return state;
       try {
         const game = reduce(state.game, a.cmd);
         const history = [...state.history, state.game].slice(-HISTORY_LIMIT);
@@ -155,6 +168,6 @@ export function useAppStore() {
     return () => cancelAnimationFrame(id);
   }, [state.game, state.view]);
 
-  const run = useCallback((cmd: Command) => dispatch({ kind: 'cmd', cmd }), []);
+  const run = useCallback((cmd: Command, expectedGame?: GameState) => dispatch({ kind: 'cmd', cmd, expectedGame }), []);
   return { state, dispatch, run };
 }

@@ -15,7 +15,7 @@ interface Instance {
  * tells them how each hand ended, and optionally deals the next hand automatically.
  * Each player keeps one bot instance (its memory) until its bot is changed.
  */
-export function useBots(game: GameState, view: ViewState, run: (cmd: Command) => void) {
+export function useBots(game: GameState, view: ViewState, run: (cmd: Command, expectedGame?: GameState) => void) {
   const instances = useRef(new Map<string, Instance>());
   const notifiedHand = useRef<number | null>(null);
 
@@ -35,19 +35,25 @@ export function useBots(game: GameState, view: ViewState, run: (cmd: Command) =>
     if (view.botsPaused || !h || h.result || h.toAct === null) return;
     const p = playerById(game, h.seats[h.toAct].playerId);
     if (!p?.bot) return;
-    const t = setTimeout(() => {
+    const turn = new AbortController();
+    const t = setTimeout(async () => {
+      const { signal } = turn;
       const bot = instanceFor(p.id, p.bot!);
       const v = viewForToAct(game);
       if (!bot || !v) return;
       let decision;
       try {
-        decision = bot.decide(v);
+        decision = bot.decideAsync ? await bot.decideAsync(v, signal) : bot.decide(v);
       } catch (e) {
+        if (signal.aborted) return;
         console.error(`Bot ${p.bot} failed`, e);
       }
-      run({ type: 'act', action: toEngineAction(game, decision) });
+      if (!signal.aborted) run({ type: 'act', action: toEngineAction(game, decision) }, game);
     }, view.botDelayMs);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      turn.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [game, view.botDelayMs, view.botsPaused, run]);
 

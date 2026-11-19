@@ -10,7 +10,12 @@ const prod = process.argv.includes('--prod');
 const { ELECTRON_RUN_AS_NODE: _ignored, ...env } = process.env;
 
 let server = null;
-if (!prod) {
+let gateway = null;
+if (prod) {
+  // In dev the Vite plugin starts the bot gateway; here we do it ourselves.
+  const { ensureGateway } = await import('./bot-gateway.mjs');
+  gateway = await ensureGateway({ quiet: true });
+} else {
   const { createServer } = await import('vite');
   server = await createServer({ server: { port: 5174, strictPort: true } });
   await server.listen();
@@ -21,6 +26,7 @@ if (!prod) {
 const app = spawn(electron, ['.'], { stdio: 'inherit', env });
 app.on('exit', async (code) => {
   await server?.close();
+  gateway?.stop();
   process.exit(code ?? 0);
 });
 process.on('SIGINT', () => app.kill());

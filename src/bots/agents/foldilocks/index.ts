@@ -407,6 +407,7 @@ export function toDecision(a: FhAction, v: BotView): Decision {
 const foldilocks: BotSpec = {
   id: 'fullhouse',
   name: 'Foldilocks (fullhouse)',
+  seats: [2, 6],
   description: 'Deep CFR advantage network from the Fullhouse Hackathon 2026 final (15th of 64), ported to TypeScript; push/fold chart at 12 BB or less.',
   create({ seed }): PokerBot {
     const rnd = rngFor(seed, 0xc0ffee);

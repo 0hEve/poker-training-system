@@ -21,10 +21,14 @@ if (!isMainThread && workerData?.simJob) {
   const result = runMatch(job.cfg, getBot, (done) => parentPort!.postMessage({ progress: done }));
   parentPort!.postMessage({ result });
 } else if (isMainThread) {
-  main().catch((e) => {
-    console.error(e instanceof Error ? e.message : e);
-    process.exit(1);
-  });
+  main().then(
+    // Remote bots keep a transport thread per worker; exit explicitly once the report is out.
+    () => process.exit(0),
+    (e) => {
+      console.error(e instanceof Error ? e.message : e);
+      process.exit(1);
+    },
+  );
 }
 
 function parseArgs(argv: string[]) {

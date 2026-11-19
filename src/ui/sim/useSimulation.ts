@@ -89,6 +89,10 @@ export function defaultWorkers() {
   return Math.max(1, Math.min(16, (navigator.hardwareConcurrency || 4) - 1));
 }
 
+export function usesSharinganSearch(c: Pick<SimConfig, 'a' | 'b'>): boolean {
+  return c.a === 'sharingan-search' || c.b === 'sharingan-search';
+}
+
 /** Runs bot-vs-bot matches across Web Workers and keeps a short history of finished runs. */
 export function useSimulation() {
   const [state, setState] = useState<SimState>(() => ({
@@ -104,7 +108,11 @@ export function useSimulation() {
   const workers = useRef<Worker[]>([]);
 
   const terminate = () => {
-    workers.current.forEach((w) => w.terminate());
+    workers.current.forEach((worker) => {
+      worker.onmessage = null;
+      worker.onerror = null;
+      worker.terminate();
+    });
     workers.current = [];
   };
   useEffect(() => terminate, []);
@@ -114,8 +122,9 @@ export function useSimulation() {
     setState((s) => (s.status === 'running' ? { ...s, status: s.run ? 'done' : 'idle', progress: 0, live: [] } : s));
   }, []);
 
-  const start = useCallback((config: SimConfig) => {
+  const start = useCallback((requested: SimConfig) => {
     terminate();
+    const config = usesSharinganSearch(requested) ? { ...requested, workers: 1 } : requested;
     const seats = seatsFor(config);
     const seed = config.seed ?? (Math.random() * 2 ** 31) >>> 0;
     const bigBlind = 10;
@@ -144,7 +153,7 @@ export function useSimulation() {
           decks[i] = m.deck;
           const now = performance.now();
           const total = done.reduce((x, y) => x + y, 0);
-          if (now - lastPush < 50 && total < config.hands) return;
+          if (lastPush && now - lastPush < 50 && total < config.hands) return;
           lastPush = now;
           const agg = decks.reduce((x, d) => ({ n: x.n + d.n, sum: x.sum + d.sum, sumSq: x.sumSq + d.sumSq }), { n: 0, sum: 0, sumSq: 0 });
           const est = estimate(agg, bigBlind, perDeck);

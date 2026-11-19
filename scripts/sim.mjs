@@ -23,4 +23,12 @@ await build({
   },
 });
 
+// External bots run in the local bot gateway; start it for this run unless it is already up.
+const remote = ['sharingan', 'sharingan-search', 'cfr-nlhe', 'slumbot', 'decisionholdem'];
+if (process.argv.some((a) => remote.some((id) => a === id || a.split(',').includes(id) || a.endsWith('=' + id)))) {
+  const { ensureGateway } = await import('./bot-gateway.mjs');
+  const gw = await ensureGateway({ quiet: true });
+  process.once('exit', () => gw.stop());
+}
+
 await import(pathToFileURL(path.join(outDir, 'cli.mjs')).href);
