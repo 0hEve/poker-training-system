@@ -60,16 +60,21 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
   const [bb, setBb] = useState(10);
   const [rebuy, setRebuy] = useState(false);
   const [length, setLength] = useState<number>(Infinity);
+  const [customLength, setCustomLength] = useState<string | null>(null);
   const [seed, setSeed] = useState<number | null>(null);
 
   const seatBots = bots.slice(0, count);
   const names = autoNames(seatBots).map((n, i) => customNames[i]?.trim() || n);
   const seats: Seat[] = seatBots.map((bot, i) => ({ bot, name: names[i] }));
   const seatIssues = [...new Set(seatBots)].map((b) => seatProblem(b, count, gw)).filter((x): x is string => !!x);
-  const valid = bb > 0 && sb >= 0 && sb <= bb && stack >= bb && seatIssues.length === 0;
-  const maxHands = !rebuy || Number.isFinite(length) ? length : 10000;
+  const validBlinds = bb > 0 && sb >= 0 && sb <= bb && stack >= bb;
+  const presetHands = rebuy && length === Infinity ? 10000 : length;
+  const maxHands = rebuy && customLength !== null ? Number(customLength) : presetHands;
+  const validLength = !rebuy || (Number.isSafeInteger(maxHands) && maxHands > 0);
+  const valid = validBlinds && validLength && seatIssues.length === 0;
 
   const begin = () => {
+    if (live || !valid) return;
     const cfg: BankrollConfig = {
       players: seats.map((s) => s.bot),
       names: seats.map((s) => s.name),
@@ -152,7 +157,7 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
           </label>
         </div>
         <p className="hint">
-          {valid || seatIssues.length
+          {validBlinds
             ? `= ${+(stack / bb).toFixed(1)} big blinds each. Blinds stay ${sb}/${bb} for the whole session.`
             : 'The small blind must not exceed the big blind, and the stack must cover the big blind.'}
         </p>
@@ -173,11 +178,35 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
           <span className="sim-label">Length</span>
           <div className="chip-row">
             {LENGTHS.filter((l) => !rebuy || Number.isFinite(l.v)).map((l) => (
-              <button key={l.label} className={`mini ${maxHands === l.v ? 'on' : ''}`} disabled={live} onClick={() => setLength(l.v)}>
+              <button
+                key={l.label}
+                className={`mini ${maxHands === l.v ? 'on' : ''}`}
+                disabled={live}
+                onClick={() => {
+                  setLength(l.v);
+                  setCustomLength(null);
+                }}
+              >
                 {l.label}
               </button>
             ))}
           </div>
+          {rebuy && (
+            <label className="sim-field">
+              <span className="sim-label">Custom hand count</span>
+              <input
+                className="num sim-num"
+                type="number"
+                min={1}
+                step={1}
+                value={customLength ?? presetHands}
+                disabled={live}
+                aria-invalid={!validLength}
+                onChange={(e) => setCustomLength(e.target.value)}
+              />
+              {!validLength && <span className="hint">Enter a positive whole number of hands.</span>}
+            </label>
+          )}
         </div>
 
         <label className="sim-field">
