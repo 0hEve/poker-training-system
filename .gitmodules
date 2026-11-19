@@ -1,0 +1,4 @@
+[submodule "external/fullhouse-bot"]
+	path = external/fullhouse-bot
+	url = https://github.com/advitrocks9/fullhouse-bot.git
+	shallow = true
