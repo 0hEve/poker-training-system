@@ -13,7 +13,9 @@
     "electron": "npm run build && node scripts/electron.mjs --prod",
     "electron:dev": "node scripts/electron.mjs",
     "dist:mac": "npm run build && npx --yes electron-builder@26 --mac",
-    "sim": "node scripts/sim.mjs"
+    "sim": "node scripts/sim.mjs",
+    "gateway": "node scripts/bot-gateway.mjs",
+    "bots:setup": "sh scripts/setup-external-bots.sh"
   },
   "build": {
     "appId": "local.pokertable.app",

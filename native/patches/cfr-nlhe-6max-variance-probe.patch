@@ -1,0 +1,22 @@
+diff --git a/native/hu20-trainer/src/variance_probe.rs b/native/hu20-trainer/src/variance_probe.rs
+index a531580..7c52cb7 100644
+--- a/native/hu20-trainer/src/variance_probe.rs
++++ b/native/hu20-trainer/src/variance_probe.rs
+@@ -138,7 +138,7 @@ pub struct Sampler<'a> {
+     pub net: &'a Fast,
+     pub tables: &'a EquityTables,
+     pub critic: Option<&'a Critic>,
+-    scratch: [Vec<f32>; 2],
++    scratch: crate::policy_network::Scratch,
+     pub nodes: u64,
+     pub calls: u64,
+ }
+@@ -148,7 +148,7 @@ impl<'a> Sampler<'a> {
+             net,
+             tables,
+             critic,
+-            scratch: [Vec::new(), Vec::new()],
++            scratch: Default::default(),
+             nodes: 0,
+             calls: 0,
+         }

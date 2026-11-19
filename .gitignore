@@ -8,3 +8,10 @@ release/
 .cache/
 # Private bots (see src/bots/registry.ts)
 src/bots/local/
+
+# Native build output
+native/*/target/
+
+# External bot weights, trained strategies and Python envs (npm run bots:setup)
+bot-assets/
+__pycache__/
