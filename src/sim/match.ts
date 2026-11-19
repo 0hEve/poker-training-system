@@ -134,7 +134,24 @@ function emptyTotals(id: string, n: number): BotTotals {
 
 const ACT_INDEX: Record<string, number> = { fold: 0, check: 1, call: 2, bet: 3, raise: 4 };
 
-export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (handsDone: number, deck: DeckStat) => void): MatchResult {
+type Progress = (handsDone: number, deck: DeckStat) => void;
+
+export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: Progress): MatchResult {
+  const result = matchSteps(cfg, resolve, onProgress).next();
+  if (!result.done) throw new Error('Synchronous match unexpectedly yielded a decision');
+  return result.value;
+}
+
+export async function runMatchAsync(cfg: MatchConfig, resolve: BotResolver, onProgress: Progress, signal: AbortSignal): Promise<MatchResult> {
+  const steps = matchSteps(cfg, resolve, onProgress, signal);
+  let step = steps.next();
+  while (!step.done) {
+    step = steps.next(await step.value);
+  }
+  return step.value;
+}
+
+function* matchSteps(cfg: MatchConfig, resolve: BotResolver, onProgress?: Progress, signal?: AbortSignal): Generator<Promise<number[]>, MatchResult, number[]> {
   const t0 = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const N = cfg.seats.length;
   if (N < 2 || N > 10) throw new Error('A table needs 2..10 seats');
@@ -165,6 +182,7 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
   const stacks: number[] = new Array(N).fill(stack);
   const seatTotals: BotTotals[] = new Array(N);
   const deckStat = { id: ids[0], n: 0, sum: 0, sumSq: 0 };
+  let lastProgress = t0;
 
   for (let h = first; h < first + cfg.hands; h++) {
     shuffleDeck(deck, rngFor(cfg.seed, h));
@@ -178,7 +196,9 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
         seatIds[k] = playerIds[phys];
         seatTotals[k] = totals[layout[phys]];
       }
-      const net = table.playHand(bots, seatIds, stacks, deck, h);
+      const net = signal
+        ? yield table.playHandAsync(bots, seatIds, stacks, deck, h, signal)
+        : table.playHand(bots, seatIds, stacks, deck, h);
       const actions = table.handActions;
       const reachedShowdown = table.wentToShowdown;
       let foldedPre = 0;
@@ -235,7 +255,13 @@ export function runMatch(cfg: MatchConfig, resolve: BotResolver, onProgress?: (h
       curve.net.push(curveNet);
       curve.sd.push(curveSd);
     }
-    if (onProgress && doneHere % 250 === 0) onProgress(doneHere, deckStat);
+    if (onProgress && (signal || doneHere % 250 === 0 || doneHere === 1)) {
+      const now = performance.now();
+      if (doneHere === 1 || now - lastProgress >= 100) {
+        lastProgress = now;
+        onProgress(doneHere, deckStat);
+      }
+    }
   }
   onProgress?.(cfg.hands, deckStat);
   const t1 = typeof performance !== 'undefined' ? performance.now() : Date.now();

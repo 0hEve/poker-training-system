@@ -1,5 +1,13 @@
-const { app, BrowserWindow, shell } = require('electron');
+const { app, BrowserWindow, shell, protocol, net } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
+
+// The built app is served from app://bundle/ rather than file://, so the page has a secure origin
+// that may call the local bot gateway (http://127.0.0.1:7878) and run module workers.
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } },
+]);
+const DIST = path.join(__dirname, '..', 'dist');
 
 // Smoke tests can point the app at a throwaway profile so they never touch the user's saved table.
 if (process.env.ELECTRON_USER_DATA) app.setPath('userData', process.env.ELECTRON_USER_DATA);
@@ -18,6 +26,23 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
     },
+  });
+
+  // A crashed or killed renderer leaves only the green window background. Log why and reload.
+  let lastRecovery = -Infinity;
+  win.webContents.on('render-process-gone', (_e, details) => {
+    console.error(`renderer gone: ${details.reason} (exit ${details.exitCode})`);
+    if (details.reason === 'clean-exit' || process.env.ELECTRON_SMOKE_SHOT) return;
+    const now = Date.now();
+    if (now - lastRecovery < 30_000) return;
+    lastRecovery = now;
+    setTimeout(() => {
+      if (!win.isDestroyed()) win.reload();
+    }, 500);
+  });
+  win.webContents.on('unresponsive', () => console.error('renderer unresponsive'));
+  win.webContents.on('console-message', ({ level, message }) => {
+    if ((level === 'warning' || level === 'error') && process.env.ELECTRON_SMOKE_SHOT) console.error(`console: ${message}`);
   });
 
   // Open external links in the default browser, never inside the app.
@@ -47,10 +72,16 @@ function createWindow() {
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   if (devUrl) win.loadURL(devUrl);
-  else win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
+  else win.loadURL('app://bundle/index.html');
 }
 
 app.whenReady().then(() => {
+  protocol.handle('app', (req) => {
+    const rel = decodeURIComponent(new URL(req.url).pathname);
+    const file = path.normalize(path.join(DIST, rel));
+    if (!file.startsWith(DIST)) return new Response('forbidden', { status: 403 });
+    return net.fetch(pathToFileURL(file).toString());
+  });
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

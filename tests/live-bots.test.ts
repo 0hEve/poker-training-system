@@ -21,7 +21,8 @@ describe('bots at the live table', () => {
         g = reduce(g, { type: 'act', action: toEngineAction(g, bot.decide(v)) });
       }
       const h = g.hand!;
-      expect(h.actions!.length).toBeGreaterThanOrEqual(3);
+      // Short stacks can be all-in from the blinds, with no decision to record.
+      expect(h.actions!.length).toBeGreaterThanOrEqual(2);
       h.seats.forEach((s, i) => {
         const sum = summaryForSeat(g, i)!;
         const p = g.players.find((x) => x.id === s.playerId)!;

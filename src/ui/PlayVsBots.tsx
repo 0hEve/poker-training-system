@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { allBots } from '../bots/registry';
+import { seatProblem, selectable, statusNote, statusTitle, useGatewayStatus } from '../bots/remote/status';
 import type { PlaySeat } from '../store';
 
 const SIZES = [
@@ -30,10 +31,16 @@ export function playSeats(you: string, botIds: string[], size: number): PlaySeat
 const BUILTIN = new Set(['tag', 'station', 'random']);
 /** Experiment-only variants (still available in the simulator). */
 const isVariant = (name: string) => /no adaptation|variant/i.test(name);
+/** External bots that can never run on this machine (listed, but not offered here). */
+const NEVER = new Set(['decisionholdem']);
 
 /** The strongest bots available: local research bots, else the built-in TAG. */
 export function strongBots(): string[] {
-  const local = allBots.filter((b) => !BUILTIN.has(b.id) && !isVariant(b.name)).map((b) => b.id);
+  const local = allBots
+    .filter((b) => !BUILTIN.has(b.id) && !isVariant(b.name) && !NEVER.has(b.id))
+    // In-process bots first (always ready); external ones depend on the gateway.
+    .sort((a, b) => Number('remote' in a) - Number('remote' in b))
+    .map((b) => b.id);
   return local.length ? local : ['tag'];
 }
 
@@ -45,16 +52,26 @@ export function PlayVsBots({ onStart, compact = false }: { onStart: (seats: Play
   const [size, setSize] = useState(6);
   const [you, setYou] = useState('You');
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? (p.length > 1 ? p.filter((x) => x !== id) : p) : [...p, id]));
+  const gw = useGatewayStatus();
   const seats = playSeats(you.trim() || 'You', picked, size);
   const strong = strongBots();
   const chip = (id: string) => {
     const b = allBots.find((x) => x.id === id)!;
     return (
-      <button key={id} className={`mini ${picked.includes(id) ? 'on' : ''}`} title={b.description} onClick={() => toggle(id)} aria-pressed={picked.includes(id)}>
+      <button
+        key={id}
+        className={`mini ${picked.includes(id) ? 'on' : ''}`}
+        title={statusTitle(id, gw)}
+        disabled={!selectable(id, gw)}
+        onClick={() => toggle(id)}
+        aria-pressed={picked.includes(id)}
+      >
         {b.name}
+        {statusNote(id, gw) && <span className="muted">{statusNote(id, gw)}</span>}
       </button>
     );
   };
+  const seatIssues = picked.map((b) => seatProblem(b, size, gw)).filter((x): x is string => !!x);
   const tally = new Map<string, number>();
   seats.slice(1).forEach((s) => tally.set(s.bot!, (tally.get(s.bot!) ?? 0) + 1));
   return (
@@ -88,7 +105,12 @@ export function PlayVsBots({ onStart, compact = false }: { onStart: (seats: Play
         {[...tally].map(([id, n]) => `🤖 ${n > 1 ? `${n} × ` : ''}${shortName(id)}`).join(' + ')}
         {picked.length > 1 ? ' (seated alternately)' : ''} · pick several opponents to mix them
       </p>
-      <button className="btn btn-primary" onClick={() => onStart(seats)}>
+      {seatIssues.map((m) => (
+        <p key={m} className="hint seat-warning">
+          ⚠ {m}
+        </p>
+      ))}
+      <button className="btn btn-primary" disabled={seatIssues.length > 0} onClick={() => onStart(seats)}>
         ▶ Sit down and deal
       </button>
       {!compact && <p className="hint">This replaces the current table. Bots act on their own after a short pause and the next hand deals itself.</p>}

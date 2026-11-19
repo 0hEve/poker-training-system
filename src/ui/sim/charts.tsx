@@ -38,6 +38,7 @@ export function niceTicks(lo: number, hi: number, count = 5): number[] {
 }
 
 export const compact = (v: number) => {
+  if (!Number.isFinite(v)) return '—';
   const a = Math.abs(v);
   if (a >= 1e6) return `${+(v / 1e6).toFixed(1)}M`;
   if (a >= 1e4) return `${+(v / 1e3).toFixed(0)}K`;

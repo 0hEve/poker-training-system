@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { allBots, findBot } from '../../bots/registry';
+import { seatProblem, selectable, statusNote, statusTitle, useGatewayStatus } from '../../bots/remote/status';
 import type { BankrollConfig, BankrollPlayer } from '../../sim/bankroll';
 import { DealerButton } from '../Chips';
 import { chipStackAspect, chipStackURL } from '../../art';
@@ -49,6 +50,7 @@ const available = (id: string) => (allBots.some((b) => b.id === id) ? id : (allB
 
 export function Bankroll({ bank }: { bank: BankrollHook }) {
   const { state } = bank;
+  const gw = useGatewayStatus();
   const live = state.status === 'running' || state.status === 'paused';
   const [count, setCount] = useState(6);
   const [bots, setBots] = useState<string[]>(() => DEFAULT_LINEUP.map(available));
@@ -63,7 +65,8 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
   const seatBots = bots.slice(0, count);
   const names = autoNames(seatBots).map((n, i) => customNames[i]?.trim() || n);
   const seats: Seat[] = seatBots.map((bot, i) => ({ bot, name: names[i] }));
-  const valid = bb > 0 && sb >= 0 && sb <= bb && stack >= bb;
+  const seatIssues = [...new Set(seatBots)].map((b) => seatProblem(b, count, gw)).filter((x): x is string => !!x);
+  const valid = bb > 0 && sb >= 0 && sb <= bb && stack >= bb && seatIssues.length === 0;
   const maxHands = !rebuy || Number.isFinite(length) ? length : 10000;
 
   const begin = () => {
@@ -119,14 +122,20 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
                 aria-label={`Seat ${i + 1} bot`}
               >
                 {allBots.map((b) => (
-                  <option key={b.id} value={b.id}>
+                  <option key={b.id} value={b.id} title={statusTitle(b.id, gw)} disabled={!selectable(b.id, gw)}>
                     {b.name}
+                    {statusNote(b.id, gw)}
                   </option>
                 ))}
               </select>
             </li>
           ))}
         </ol>
+        {seatIssues.map((m) => (
+          <p key={m} className="hint seat-warning">
+            ⚠ {m} Pick another bot or change the number of players.
+          </p>
+        ))}
 
         <div className="sim-field sim-three">
           <label>
@@ -143,7 +152,9 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
           </label>
         </div>
         <p className="hint">
-          {valid ? `= ${+(stack / bb).toFixed(1)} big blinds each. Blinds stay ${sb}/${bb} for the whole session.` : 'The small blind must not exceed the big blind, and the stack must cover the big blind.'}
+          {valid || seatIssues.length
+            ? `= ${+(stack / bb).toFixed(1)} big blinds each. Blinds stay ${sb}/${bb} for the whole session.`
+            : 'The small blind must not exceed the big blind, and the stack must cover the big blind.'}
         </p>
 
         <div className="sim-field">

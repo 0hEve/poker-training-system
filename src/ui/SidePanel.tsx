@@ -3,6 +3,7 @@ import { handInProgress, MAX_PLAYERS, type Command, type GameState, type Setting
 import { formatChips } from '../engine/chips';
 import type { AppAction, PlaySeat, ViewState } from '../store';
 import { allBots } from '../bots/registry';
+import { selectable, statusNote, statusTitle, useGatewayStatus } from '../bots/remote/status';
 import { PlayVsBots } from './PlayVsBots';
 
 interface Props {
@@ -125,6 +126,7 @@ const SPEEDS = [
 function Bots({ game, view, run, dispatch, onStartPlay }: Props & { onStartPlay: (seats: PlaySeat[]) => void }) {
   const setView = (patch: Partial<ViewState>) => dispatch({ kind: 'view', patch });
   const [newGame, setNewGame] = useState(!game.players.some((p) => p.bot));
+  const gw = useGatewayStatus();
   return (
     <div className="bots">
       <details className="quick-play" open={newGame} onToggle={(e) => setNewGame((e.target as HTMLDetailsElement).open)}>
@@ -141,8 +143,9 @@ function Bots({ game, view, run, dispatch, onStartPlay }: Props & { onStartPlay:
             <select value={p.bot ?? ''} onChange={(e) => run({ type: 'setBot', id: p.id, bot: e.target.value || null })} aria-label={`Controller for ${p.name}`}>
               <option value="">Human</option>
               {allBots.map((b) => (
-                <option key={b.id} value={b.id} title={b.description}>
+                <option key={b.id} value={b.id} title={statusTitle(b.id, gw)} disabled={!selectable(b.id, gw)}>
                   🤖 {b.name}
+                  {statusNote(b.id, gw)}
                 </option>
               ))}
               {p.bot && !allBots.some((b) => b.id === p.bot) && <option value={p.bot}>Missing bot: {p.bot}</option>}
