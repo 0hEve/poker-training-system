@@ -51,8 +51,8 @@ export const signed = (v: number, digits = 1) => (v > 0 ? '+' : v < 0 ? '−' : 
 export function Legend({ items }: { items: { label: string; color: string; dashed?: boolean; band?: boolean }[] }) {
   return (
     <div className="viz-legend">
-      {items.map((it) => (
-        <span key={it.label} className="viz-legend-item">
+      {items.map((it, index) => (
+        <span key={index} className="viz-legend-item">
           {it.band ? (
             <span className="viz-key-band" style={{ background: it.color }} />
           ) : (
@@ -141,6 +141,12 @@ export function LineChart({
     return lo;
   };
   const hx = hover !== null ? ref0[hover]?.[0] : null;
+  // Labels can repeat. Keep each row keyed to its original series slot when sorting by value.
+  const hoverRows = hover === null ? [] : series.flatMap((s, index) => {
+    const point = s.points[hover];
+    return point ? [{ series: s, index, point }] : [];
+  });
+  const tooltipRows = sortTooltip ? [...hoverRows].sort((a, b) => b.point[1] - a.point[1]) : hoverRows;
   return (
     <div ref={ref} className="viz" style={{ height }}>
       <svg
@@ -170,36 +176,32 @@ export function LineChart({
           {xTitle}
         </text>
         {band && <path d={bandPath} fill={band.color} opacity={0.14} />}
-        {series.map((s) => (
-          <path key={s.label} d={path(s.points)} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '5 4' : undefined} />
+        {series.map((s, index) => (
+          <path key={index} d={path(s.points)} fill="none" stroke={s.color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed ? '5 4' : undefined} />
         ))}
-        {series.map((s) => {
+        {series.map((s, index) => {
           const p = s.points[s.points.length - 1];
-          return p ? <circle key={s.label} cx={sx(p[0])} cy={sy(p[1])} r={4} fill={s.color} stroke="#f6edd9" strokeWidth={2} /> : null;
+          return p ? <circle key={index} cx={sx(p[0])} cy={sy(p[1])} r={4} fill={s.color} stroke="#f6edd9" strokeWidth={2} /> : null;
         })}
         {hx !== null && hx !== undefined && (
           <>
             <line x1={sx(hx)} x2={sx(hx)} y1={m.t} y2={m.t + ih} className="viz-cross" />
-            {series.map((s) => {
-              const p = s.points[hover!];
-              return p ? <circle key={s.label} cx={sx(p[0])} cy={sy(p[1])} r={4.5} fill={s.color} stroke="#f6edd9" strokeWidth={2} /> : null;
-            })}
+            {hoverRows.map(({ series: s, index, point }) => (
+              <circle key={index} cx={sx(point[0])} cy={sy(point[1])} r={4.5} fill={s.color} stroke="#f6edd9" strokeWidth={2} />
+            ))}
           </>
         )}
       </svg>
       {hx !== null && hx !== undefined && (
         <Tooltip x={sx(hx)} y={m.t + ih / 2} width={width}>
           <div className="viz-tip-title">{tooltipTitle ? tooltipTitle(hx) : formatX(hx)}</div>
-          {(sortTooltip ? [...series].sort((a, b) => (b.points[hover!]?.[1] ?? 0) - (a.points[hover!]?.[1] ?? 0)) : series).map((s) => {
-            const p = s.points[hover!];
-            return p ? (
-              <div key={s.label} className="viz-tip-row">
-                <span className="viz-swatch" style={{ background: s.color }} />
-                <span>{s.label}</span>
-                <b>{formatY(p[1])}</b>
-              </div>
-            ) : null;
-          })}
+          {tooltipRows.map(({ series: s, index, point }) => (
+            <div key={index} className="viz-tip-row">
+              <span className="viz-swatch" style={{ background: s.color }} />
+              <span>{s.label}</span>
+              <b>{formatY(point[1])}</b>
+            </div>
+          ))}
           {band && band.points[hover!] && (
             <div className="viz-tip-row muted">
               <span className="viz-swatch" style={{ background: band.color, opacity: 0.35 }} />
