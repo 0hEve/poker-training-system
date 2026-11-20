@@ -1,3 +1,4 @@
+import { getBot } from './registry';
 import type { BotSpec, BotView, Decision, PokerBot } from './types';
 import { rngFor } from '../sim/rng';
 import { evalWith2, accFrom, categoryOf } from '../sim/eval';
@@ -93,3 +94,8 @@ function accScore(board: readonly number[]): number {
 }
 
 export const builtinBots: BotSpec[] = [tag, station, random];
+
+/** Baselines for engine tests and bot research. */
+export function getBenchmarkBot(id: string): BotSpec {
+  return builtinBots.find((bot) => bot.id === id) ?? getBot(id);
+}

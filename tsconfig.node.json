@@ -10,8 +10,7 @@
     ]
   },
   "include": [
-    "src/sim/cli.ts",
-    "vite.config.ts"
+    "src/sim/cli.ts"
   ],
   "exclude": []
 }

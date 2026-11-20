@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { getBot } from '../../../registry';
+import { getBenchmarkBot as getBot } from '../../../builtin';
 import { FastTable } from '../../../../sim/table';
 import { rngFor, shuffleDeck } from '../../../../sim/rng';
 const opp = process.env.OPP ?? 'tag';

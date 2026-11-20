@@ -37,8 +37,8 @@ handles blinds, turn order, min-raises, side pots, showdown and chip counts.
   headlessly across Web Workers with a live estimate, then a results dashboard shows the winner and
   95% range, decisions per second against the 10,000/s requirement, the winnings curve (showdown vs
   non-showdown), how the estimate converged, profit by position, action mix by street and a
-  side-by-side stats table. The last 12 runs are kept, and each report links to *Play vs …* that bot.
-- **CLI.** `npm run sim -- --a tag --b station` runs the same match from the terminal on every core.
+  side-by-side stats table. The last 12 runs are kept, and reports link to *Play vs …* for available bots.
+- **CLI.** `npm run sim -- --a opus --b gpt` runs the same match from the terminal on every core.
   Use `--hands`, `--seats a,b,c`, `--workers 1` (one continuous session, so bots can adapt across the
   whole match), `--bench <bot>` and `--list`.
 
@@ -68,30 +68,12 @@ Opus vs GPT, 3v3 at 6-max, 50,000 duplicate decks (100,000 hands):
 | 16 workers, three seeds | +35.5, +36.8, +37.7 (each ± ~3.5) |
 | One continuous session (bots adapt across all hands) | +63.9 ± 3.8 |
 
-### External bots
-
-Six open-source bots are wired into every surface: the live table, *Play against the bots*, the
-simulator, bankroll sessions and the CLI. Their upstream code is pinned in `external/` and runs
-behind a local Rust gateway (`native/bot-gateway`) that `npm run dev`, Electron and `npm run sim`
-start automatically.
-
-- **Sharingan**: Pluribus reproduction, 2–6 players.
-- **CFR-NLHE**: HU20/100/200 by depth, plus a 3-handed blueprint.
-- **Slumbot 2019**: locally trained MCCFR blueprint, heads-up.
-- **Foldilocks (fullhouse)**: Deep CFR network, 2–6 players. Ported to TypeScript + WebAssembly SIMD, runs in-app.
-- **Sequoia**: rule and equity bot with opponent counters. Ported to TypeScript, runs in-app.
-- **DecisionHoldem**: listed, but cannot run here.
-
-Run `npm run bots:setup` once. Details, sizes and limits are in
-[docs/external-bots.md](docs/external-bots.md).
-
 ### Writing a bot
 
 Implement `BotSpec` from `src/bots/types.ts` (`decide(view)` returns fold, check, call, raise-to or
 all-in, and the optional `handEnd(summary)` reports each finished hand for opponent modelling).
-Baseline bots live in `src/bots/builtin.ts` and full bots in `src/bots/agents/<name>/`. Private bots go
-in `src/bots/local/<name>/index.ts` as a default export. They're found automatically and that folder
-is git-ignored. Bots should decide in
+Baseline bots for tests and benchmarks live in `src/bots/builtin.ts`. Playable bots live in
+`src/bots/agents/` and are registered in `src/bots/registry.ts`. Bots should decide in
 well under 100 µs (10,000 decisions/s). The simulator reports anything slower.
 
 ## Run it

@@ -1,26 +1,16 @@
 import { useMemo, useState } from 'react';
 import { allBots, findBot } from '../../bots/registry';
-import { seatProblem, selectable, statusNote, statusTitle, useGatewayStatus } from '../../bots/remote/status';
 import { ACT_KINDS, positionNames, summarize, type BotReport } from '../../sim/match';
 import { ACTION_COLORS, ACTION_LABELS, GroupedBars, Legend, LineChart, SERIES, StackedRows, compact, signed } from './charts';
 import { Bankroll } from './Bankroll';
 import type { Bankroll as BankrollHook } from './useBankroll';
-import { FORMATS, defaultWorkers, seatsFor, seatsPerDeck, usesSharinganSearch, type FormatId, type SimConfig, type SimRun, type Simulation } from './useSimulation';
+import { FORMATS, canRun, defaultWorkers, seatsFor, seatsPerDeck, type FormatId, type SimConfig, type SimRun, type Simulation } from './useSimulation';
 
 const botName = (id: string) => findBot(id)?.name ?? id;
 const DECK_PRESETS = [5000, 20000, 50000, 200000];
 const STREETS = ['Preflop', 'Flop', 'Turn', 'River'];
 const CURVE_COLORS = { total: SERIES[0], sd: '#1baf7a', nonSd: '#e34948' };
 const REQUIRED_DPS = 10000;
-
-/** Pick sensible defaults: the two strongest-looking bots (local bots first). */
-function defaultPair(): [string, string] {
-  const ids = allBots.map((b) => b.id);
-  const pick = (want: string) => ids.find((id) => id === want);
-  const a = pick('opus') ?? ids.find((id) => !['tag', 'station', 'random'].includes(id)) ?? ids[0] ?? '';
-  const b = pick('gpt') ?? ids.find((id) => id !== a && !id.startsWith(a)) ?? ids[1] ?? a;
-  return [a, b];
-}
 
 export function Simulator({
   sim,
@@ -41,21 +31,12 @@ export function Simulator({
 function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[]) => void }) {
   const { state } = sim;
   const running = state.status === 'running';
-  const [initA, initB] = defaultPair();
   const [cfg, setCfg] = useState<SimConfig>(
-    () => state.config ?? { a: initA, b: initB, format: '3v3', hands: 50000, duplicate: true, workers: defaultWorkers(), seed: null },
+    () => state.config ?? { a: 'opus', b: 'gpt', format: '3v3', hands: 50000, duplicate: true, workers: defaultWorkers(), seed: null },
   );
-  const set = (patch: Partial<SimConfig>) => setCfg((c) => {
-    const next = { ...c, ...patch };
-    if (!usesSharinganSearch(c) && usesSharinganSearch(next) && c.hands === 50000) next.hands = 100;
-    return next;
-  });
-  const search = usesSharinganSearch(cfg);
+  const set = (patch: Partial<SimConfig>) => setCfg((c) => ({ ...c, ...patch }));
   const twoBots = cfg.a !== cfg.b;
   const totalHands = cfg.hands * (cfg.duplicate && twoBots ? 2 : 1);
-  const gw = useGatewayStatus();
-  const n = seatsFor(cfg).length;
-  const seatIssues = [...new Set([cfg.a, cfg.b])].map((b) => seatProblem(b, n, gw)).filter((x): x is string => !!x);
 
   return (
     <div className="sim">
@@ -77,17 +58,12 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
             ))}
           </div>
           <SeatStrip seats={seatsFor(cfg)} a={cfg.a} />
-          {seatIssues.map((m) => (
-            <p key={m} className="hint seat-warning">
-              ⚠ {m} Pick a format it supports.
-            </p>
-          ))}
         </div>
 
         <div className="sim-field">
           <span className="sim-label">Decks</span>
           <div className="chip-row">
-            {(search ? [100, 500, 1000, 5000] : DECK_PRESETS).map((n) => (
+            {DECK_PRESETS.map((n) => (
               <button key={n} className={`mini ${cfg.hands === n ? 'on' : ''}`} disabled={running} onClick={() => set({ hands: n })}>
                 {compact(n)}
               </button>
@@ -120,8 +96,8 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
               type="number"
               min={1}
               max={32}
-              value={search ? 1 : cfg.workers}
-              disabled={running || search}
+              value={cfg.workers}
+              disabled={running}
               onChange={(e) => set({ workers: Math.max(1, Math.min(32, Number(e.target.value) || 1)) })}
             />
           </label>
@@ -138,10 +114,8 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
           </label>
         </div>
         <p className="hint">
-          {search
-            ? 'Sharingan + search uses one worker because search is CPU and memory intensive. A single decision can take several seconds.'
-            : 'More workers finish faster. With one worker, each bot can adapt to its opponents across the entire run.'}
-          {' '}Leave the seed empty for new cards each run.
+          More workers finish faster; with 1 worker every bot plays one long session and can adapt to its opponents across all hands. Leave the seed empty for new cards
+          each run.
         </p>
 
         {running ? (
@@ -149,7 +123,7 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
             ■ Stop
           </button>
         ) : (
-          <button className="btn btn-primary sim-run" disabled={!cfg.a || !cfg.b || seatIssues.length > 0} onClick={() => sim.start(cfg)}>
+          <button className="btn btn-primary sim-run" disabled={!cfg.a || !cfg.b} onClick={() => sim.start(cfg)}>
             ▶ Run {totalHands.toLocaleString()} hands
           </button>
         )}
@@ -161,7 +135,7 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
         {state.status === 'error' && <div className="sketch-panel sim-card sim-error">Simulation failed: {state.error}</div>}
         {running && state.config && <LiveRun sim={sim} />}
         {!running && state.run && <Report run={state.run} onPlay={onPlay} onRerun={() => sim.start({ ...state.run!.config, seed: null })} />}
-        {!running && !state.run && state.status !== 'error' && <EmptyBoard onRun={() => sim.start(cfg)} blocked={seatIssues.length > 0} cfg={cfg} totalHands={totalHands} />}
+        {!running && !state.run && state.status !== 'error' && <EmptyBoard onRun={() => sim.start(cfg)} cfg={cfg} totalHands={totalHands} />}
       </section>
     </div>
   );
@@ -169,8 +143,6 @@ function HeadToHead({ sim, onPlay }: { sim: Simulation; onPlay: (botIds: string[
 
 function BotPicker({ label, color, value, onChange, disabled }: { label: string; color: string; value: string; onChange: (v: string) => void; disabled: boolean }) {
   const spec = findBot(value);
-  const gw = useGatewayStatus();
-  const note = statusNote(value, gw);
   return (
     <div className="bot-pick">
       <div className="bot-pick-head">
@@ -179,16 +151,12 @@ function BotPicker({ label, color, value, onChange, disabled }: { label: string;
       </div>
       <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
         {allBots.map((b) => (
-          <option key={b.id} value={b.id} title={statusTitle(b.id, gw)} disabled={!selectable(b.id, gw)}>
+          <option key={b.id} value={b.id}>
             {b.name}
-            {statusNote(b.id, gw)}
           </option>
         ))}
       </select>
-      <p className="bot-desc" title={statusTitle(value, gw)}>
-        {spec?.description ?? 'Bot not found'}
-        {note && <span className="bot-status"> ({note.replace(' · ', '')}: plays check/fold until ready)</span>}
-      </p>
+      <p className="bot-desc">{spec?.description ?? 'Bot not found'}</p>
     </div>
   );
 }
@@ -245,7 +213,7 @@ function timeAgo(t: number) {
   return new Date(t).toLocaleDateString();
 }
 
-function EmptyBoard({ onRun, blocked, cfg, totalHands }: { onRun: () => void; blocked: boolean; cfg: SimConfig; totalHands: number }) {
+function EmptyBoard({ onRun, cfg, totalHands }: { onRun: () => void; cfg: SimConfig; totalHands: number }) {
   return (
     <div className="sketch-panel sim-card sim-empty">
       <h2>Bot vs bot simulator</h2>
@@ -267,7 +235,7 @@ function EmptyBoard({ onRun, blocked, cfg, totalHands }: { onRun: () => void; bl
           <b>Speed check</b> — decisions per second against the 10,000/s requirement
         </li>
       </ul>
-      <button className="btn btn-primary" disabled={blocked} onClick={onRun}>
+      <button className="btn btn-primary" onClick={onRun}>
         ▶ Run {botName(cfg.a)} vs {botName(cfg.b)} · {FORMATS[cfg.format].label} · {totalHands.toLocaleString()} hands
       </button>
     </div>
@@ -387,19 +355,21 @@ function Report({ run, onPlay, onRerun }: { run: SimRun; onPlay: (ids: string[])
           </p>
         </div>
         <div className="report-actions">
-          {bots.map((x) => (
+          {bots.filter((x) => findBot(x.id)).map((x) => (
             <button key={x.id} className="btn small" onClick={() => onPlay([x.id])}>
               Play vs {botName(x.id)}
             </button>
           ))}
-          {b && (
+          {b && canRun(run.config) && (
             <button className="btn small" onClick={() => onPlay([a.id, b.id])}>
               Play vs both
             </button>
           )}
-          <button className="btn small ghost" onClick={onRerun}>
-            ↻ Run again, new cards
-          </button>
+          {canRun(run.config) && (
+            <button className="btn small ghost" onClick={onRerun}>
+              ↻ Run again, new cards
+            </button>
+          )}
         </div>
       </div>
 

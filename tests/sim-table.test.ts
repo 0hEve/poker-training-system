@@ -4,7 +4,7 @@ import type { BotView, Decision, PokerBot } from '../src/bots/types';
 import { FastTable } from '../src/sim/table';
 import { rngFor, shuffleDeck } from '../src/sim/rng';
 import { runMatch, splitHands, mergeResults, summarize } from '../src/sim/match';
-import { getBot } from '../src/bots/registry';
+import { getBenchmarkBot as getBot } from '../src/bots/builtin';
 
 /** Random bot that likes all-ins and odd raise sizes to hit edge cases. */
 function chaos(rnd: () => number): PokerBot {

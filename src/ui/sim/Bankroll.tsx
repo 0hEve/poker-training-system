@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { allBots, findBot } from '../../bots/registry';
-import { seatProblem, selectable, statusNote, statusTitle, useGatewayStatus } from '../../bots/remote/status';
 import type { BankrollConfig, BankrollPlayer } from '../../sim/bankroll';
 import { DealerButton } from '../Chips';
 import { chipStackAspect, chipStackURL } from '../../art';
@@ -26,7 +25,7 @@ const LENGTHS = [
   { v: Infinity, label: 'Until one is left' },
 ];
 /** New seats cycle through these bots. */
-const DEFAULT_LINEUP = ['opus', 'gpt', 'tag', 'station', 'random', 'opus', 'gpt', 'tag', 'station', 'random'];
+const DEFAULT_LINEUP = Array.from({ length: 10 }, (_, i) => i % 2 === 0 ? 'opus' : 'gpt');
 
 const botName = (id: string) => (findBot(id)?.name ?? id).replace(/\s*\(.*\)$/, '');
 
@@ -46,14 +45,11 @@ function autoNames(bots: string[]): string[] {
   });
 }
 
-const available = (id: string) => (allBots.some((b) => b.id === id) ? id : (allBots[0]?.id ?? id));
-
 export function Bankroll({ bank }: { bank: BankrollHook }) {
   const { state } = bank;
-  const gw = useGatewayStatus();
   const live = state.status === 'running' || state.status === 'paused';
   const [count, setCount] = useState(6);
-  const [bots, setBots] = useState<string[]>(() => DEFAULT_LINEUP.map(available));
+  const [bots, setBots] = useState<string[]>(DEFAULT_LINEUP);
   const [customNames, setCustomNames] = useState<(string | null)[]>(() => new Array(10).fill(null));
   const [stack, setStack] = useState(1000);
   const [sb, setSb] = useState(5);
@@ -66,12 +62,11 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
   const seatBots = bots.slice(0, count);
   const names = autoNames(seatBots).map((n, i) => customNames[i]?.trim() || n);
   const seats: Seat[] = seatBots.map((bot, i) => ({ bot, name: names[i] }));
-  const seatIssues = [...new Set(seatBots)].map((b) => seatProblem(b, count, gw)).filter((x): x is string => !!x);
   const validBlinds = bb > 0 && sb >= 0 && sb <= bb && stack >= bb;
   const presetHands = rebuy && length === Infinity ? 10000 : length;
   const maxHands = rebuy && customLength !== null ? Number(customLength) : presetHands;
   const validLength = !rebuy || (Number.isSafeInteger(maxHands) && maxHands > 0);
-  const valid = validBlinds && validLength && seatIssues.length === 0;
+  const valid = validBlinds && validLength;
 
   const begin = () => {
     if (live || !valid) return;
@@ -127,20 +122,14 @@ export function Bankroll({ bank }: { bank: BankrollHook }) {
                 aria-label={`Seat ${i + 1} bot`}
               >
                 {allBots.map((b) => (
-                  <option key={b.id} value={b.id} title={statusTitle(b.id, gw)} disabled={!selectable(b.id, gw)}>
+                  <option key={b.id} value={b.id}>
                     {b.name}
-                    {statusNote(b.id, gw)}
                   </option>
                 ))}
               </select>
             </li>
           ))}
         </ol>
-        {seatIssues.map((m) => (
-          <p key={m} className="hint seat-warning">
-            ⚠ {m} Pick another bot or change the number of players.
-          </p>
-        ))}
 
         <div className="sim-field sim-three">
           <label>

@@ -1,8 +1,8 @@
 /**
  * Bot-vs-bot simulator CLI. Run through `npm run sim -- <options>` (see scripts/sim.mjs).
  *
- *   npm run sim -- --a tag --b station                 3v3, 50,000 duplicate hands, all cores
- *   npm run sim -- --seats tag,random,station --hands 20000
+ *   npm run sim -- --a opus --b gpt                 3v3, 50,000 duplicate hands, all cores
+ *   npm run sim -- --seats opus,opus-static,gpt --hands 20000
  *   npm run sim -- --a opus --b gpt --workers 1        one continuous session (max adaptation)
  *   npm run sim -- --bench opus                        decision-speed benchmark
  *   npm run sim -- --list                              list available bots
@@ -21,14 +21,10 @@ if (!isMainThread && workerData?.simJob) {
   const result = runMatch(job.cfg, getBot, (done) => parentPort!.postMessage({ progress: done }));
   parentPort!.postMessage({ result });
 } else if (isMainThread) {
-  main().then(
-    // Remote bots keep a transport thread per worker; exit explicitly once the report is out.
-    () => process.exit(0),
-    (e) => {
-      console.error(e instanceof Error ? e.message : e);
-      process.exit(1);
-    },
-  );
+  main().catch((e) => {
+    console.error(e instanceof Error ? e.message : e);
+    process.exit(1);
+  });
 }
 
 function parseArgs(argv: string[]) {

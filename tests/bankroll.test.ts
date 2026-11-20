@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getBot } from '../src/bots/registry';
+import { getBenchmarkBot as getBot } from '../src/bots/builtin';
 import { BankrollSession } from '../src/sim/bankroll';
 
 describe('bankroll session', () => {

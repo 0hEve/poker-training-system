@@ -1,6 +1,6 @@
 /// <reference types="node" />
 /** Leak finder: node src/bots/agents/opus/gen/run.mjs analyze.ts  (env: OPP=tag HANDS=20000 HERO=opus) */
-import { getBot } from '../../../registry';
+import { getBenchmarkBot as getBot } from '../../../builtin';
 import { FastTable } from '../../../../sim/table';
 import { rngFor, shuffleDeck } from '../../../../sim/rng';
 import { positionOf } from '../position';

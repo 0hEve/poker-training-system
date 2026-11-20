@@ -1,3 +1,4 @@
+import { findBot } from '../../bots/registry';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { mergeResults, mirrorSeats, splitHands, type DeckStat, type MatchConfig, type MatchResult } from '../../sim/match';
 
@@ -89,8 +90,8 @@ export function defaultWorkers() {
   return Math.max(1, Math.min(16, (navigator.hardwareConcurrency || 4) - 1));
 }
 
-export function usesSharinganSearch(c: Pick<SimConfig, 'a' | 'b'>): boolean {
-  return c.a === 'sharingan-search' || c.b === 'sharingan-search';
+export function canRun(config: SimConfig): boolean {
+  return !!findBot(config.a) && !!findBot(config.b);
 }
 
 /** Runs bot-vs-bot matches across Web Workers and keeps a short history of finished runs. */
@@ -122,9 +123,9 @@ export function useSimulation() {
     setState((s) => (s.status === 'running' ? { ...s, status: s.run ? 'done' : 'idle', progress: 0, live: [] } : s));
   }, []);
 
-  const start = useCallback((requested: SimConfig) => {
+  const start = useCallback((config: SimConfig) => {
+    if (!canRun(config)) return;
     terminate();
-    const config = usesSharinganSearch(requested) ? { ...requested, workers: 1 } : requested;
     const seats = seatsFor(config);
     const seed = config.seed ?? (Math.random() * 2 ** 31) >>> 0;
     const bigBlind = 10;
@@ -190,7 +191,7 @@ export function useSimulation() {
     });
   }, []);
 
-  const show = useCallback((run: SimRun) => setState((s) => (s.status === 'running' ? s : { ...s, status: 'done', run, config: run.config, error: null })), []);
+  const show = useCallback((run: SimRun) => setState((s) => (s.status === 'running' ? s : { ...s, status: 'done', run, config: canRun(run.config) ? run.config : s.config, error: null })), []);
 
   const forget = useCallback((id: string) => {
     setState((s) => {

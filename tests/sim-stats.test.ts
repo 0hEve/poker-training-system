@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getBot } from '../src/bots/registry';
-import { mergeResults, positionNames, runMatch, runMatchAsync, splitHands, summarize } from '../src/sim/match';
+import { getBenchmarkBot as getBot } from '../src/bots/builtin';
+import { mergeResults, positionNames, runMatch, splitHands, summarize } from '../src/sim/match';
 
 describe('match statistics for the simulator dashboard', () => {
   it('names positions from the button', () => {
@@ -30,30 +30,5 @@ describe('match statistics for the simulator dashboard', () => {
     expect(merged.curve.x).toEqual(whole.curve.x.filter((x) => merged.curve.x.includes(x)));
     expect(merged.curve.net.at(-1)).toBe(whole.curve.net.at(-1));
     expect(merged.totals.station.posNet).toEqual(whole.totals.station.posNet);
-  });
-
-  it('uses asynchronous bot decisions and reports the first completed deck', async () => {
-    const cfg = { seats: ['tag', 'station'], hands: 12, seed: 5 };
-    const sync = runMatch(cfg, getBot);
-    const reported: number[] = [];
-    const result = await runMatchAsync(cfg, (id) => {
-      const spec = getBot(id);
-      return {
-        ...spec,
-        create: (opts) => {
-          const bot = spec.create(opts);
-          return {
-            ...bot,
-            decide: () => { throw new Error('Expected asynchronous decisions'); },
-            decideAsync: async (view) => bot.decide(view),
-          };
-        },
-      };
-    }, (done) => reported.push(done), new AbortController().signal);
-    expect(reported[0]).toBe(1);
-    expect(reported.at(-1)).toBe(cfg.hands);
-    expect(result.deck).toEqual(sync.deck);
-    expect(result.curve).toEqual(sync.curve);
-    expect(result.totals.tag.errors + result.totals.station.errors).toBe(0);
   });
 });
